@@ -1,0 +1,2 @@
+-- Početni podaci: materijali, klase i cijene.
+-- Popunjava se u koraku 0.5 — Početni podaci.
