@@ -42,3 +42,6 @@ next-env.d.ts
 
 # osobne postavke Claude Codea
 .claude/settings.local.json
+
+# predmemorija skripti (sirovi podaci s Overpassa)
+scripts/.cache/

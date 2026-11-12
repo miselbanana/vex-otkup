@@ -64,7 +64,9 @@ npx supabase migration new <naziv>       # nova migracija u supabase/migrations/
 npx supabase db push --remote            # primijeni migracije na povezani projekt (bez --remote CLI traži lokalni Docker)
 npx supabase migration list --remote     # usporedi lokalne i primijenjene migracije
 npx supabase gen types typescript --remote > src/lib/supabase/tipovi.ts   # pokreni u Bashu, ne u PowerShellu (kodiranje)
-npx supabase db query --remote --file supabase/seed.sql --yes            # upiši početne podatke (cjenik)
+npx supabase db query --remote --file supabase/seed.sql --yes            # upiši početne podatke (županije, cjenik)
+node scripts/uvoz-naselja.mts                                             # ponovno generiraj supabase/naselja.sql iz OSM-a
+npx supabase db query --remote --file supabase/naselja.sql --yes         # upiši naselja (nakon seed.sql)
 npx supabase db advisors --remote                                         # sigurnosna provjera baze
 ```
 
@@ -253,4 +255,15 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 0.4: `broj` narudžbe (`2026-0001`) dodjeljuje okidač `dodijeli_broj_narudzbe` preko pomoćne tablice `brojaci_narudzbi`. Brojanje kreće ispočetka svake godine (zona Europe/Zagreb).
 - 0.4: `ime_prezime`, `mobitel` i `ulica` su `not null`. Za anonimizaciju u 2.8 trebat će nova migracija.
 - 0.4: tipovi se generiraju s `--remote` (`--linked` je zastario u CLI 3.x), u Bashu.
-- 0.5 (djelomično, na Mišelov zahtjev): u `seed.sql` je **PRIVREMENI** cjenik (9 materijala, 17 klasa, procijenjene cijene). Upisan je u bazu. Zamijeniti Vedranovim cijenama i opisima. Naselja i županije još nisu napravljeni.
+- 0.5 (djelomično, na Mišelov zahtjev): u `seed.sql` je **PRIVREMENI** cjenik (9 materijala, 17 klasa, procijenjene cijene). Upisan je u bazu. Zamijeniti Vedranovim cijenama i opisima. **Županije i naselja su gotovi, 0.5 ostaje `[~]` samo zbog cjenika.**
+- 0.5: županije (21) su u `seed.sql`. 15 je pokriveno: Rijeka–Slavonija + Varaždinska, Krapinsko-zagorska i Međimurska. Nepokrivene su Istarska, Ličko-senjska i 4 dalmatinske.
+- 0.5: naselja nisu iz DZS tablice. Izvor je OpenStreetMap (Overpass), čije su granice preuzete od DGU. Wikidata je odbačena jer joj nedostaju naselja u Slavoniji.
+  - Općinu i županiju skripta određuje točkom unutar granice naselja, jer OSM nema potpun popis „naselje → općina”. Ta ista točka spremljena je kao `lat`/`lng`.
+  - Upisano je 6.754 naselja, a službeni broj je 6.757. Grad Zagreb ima 68 naselja umjesto 70, jer OSM-u nedostaju 2 naselja.
+  - `postanski_broj` je prazan, jer ga OSM nema.
+  - Općina je zapisana s prefiksom („Grad Vukovar”, „Općina Tovarnik”). Za naselja Grada Zagreba općina je „Grad Zagreb”.
+- 0.5: nova migracija `naselja_maticni_broj` dodaje stupac `maticni_broj` (unique). On je ključ za ponovljivi uvoz.
+- 0.5: skripta je `scripts/uvoz-naselja.mts`, a ne `.ts`. Nastavak `.mts` znači ES modul, pa Node ne ispisuje upozorenje.
+  - Pokreće se s `node scripts/uvoz-naselja.mts`. Ne treba novi paket ni tajni ključ.
+  - Zapisuje `supabase/naselja.sql`, koji se upisuje s `npx supabase db query --remote --file supabase/naselja.sql --yes`, i to **nakon** `seed.sql`.
+  - Sirovi podaci (~150 MB) su u `scripts/.cache/`, koji je u `.gitignore`.

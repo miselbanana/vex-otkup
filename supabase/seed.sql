@@ -1,4 +1,6 @@
--- Početni podaci: materijali, klase i cijene (korak 0.5).
+-- Početni podaci: županije, materijali, klase i cijene (korak 0.5).
+-- Naselja su u zasebnoj datoteci supabase/naselja.sql (generira je scripts/uvoz-naselja.mts)
+-- i upisuju se NAKON ove datoteke, jer se pozivaju na županije po nazivu.
 --
 -- !!! PRIVREMENI PODACI — zamijeniti Vedranovim cjenikom !!!
 -- Cijene su okvirna procjena prema tržišnim smjernicama za 2026. godinu,
@@ -7,6 +9,37 @@
 -- Datoteka se smije pokrenuti više puta: postojeći zapisi se ažuriraju, ne dupliciraju.
 -- Pokretanje na povezanoj bazi:
 --   npx supabase db query --remote --file supabase/seed.sql --yes
+
+-- ---------------------------------------------------------------------
+-- Županije
+-- pokrivena = true → Vedran dolazi i narudžba je dopuštena.
+-- Nazivi moraju biti točno kao u OpenStreetMapu (provjerava ih skripta uvoza naselja).
+-- ---------------------------------------------------------------------
+
+insert into public.zupanije (naziv, pokrivena) values
+  ('Primorsko-goranska županija',     true),
+  ('Karlovačka županija',             true),
+  ('Grad Zagreb',                     true),
+  ('Zagrebačka županija',             true),
+  ('Sisačko-moslavačka županija',     true),
+  ('Bjelovarsko-bilogorska županija', true),
+  ('Koprivničko-križevačka županija', true),
+  ('Virovitičko-podravska županija',  true),
+  ('Požeško-slavonska županija',      true),
+  ('Brodsko-posavska županija',       true),
+  ('Osječko-baranjska županija',      true),
+  ('Vukovarsko-srijemska županija',   true),
+  ('Varaždinska županija',            true),
+  ('Krapinsko-zagorska županija',     true),
+  ('Međimurska županija',             true),
+  ('Istarska županija',               false),
+  ('Ličko-senjska županija',          false),
+  ('Zadarska županija',               false),
+  ('Šibensko-kninska županija',       false),
+  ('Splitsko-dalmatinska županija',   false),
+  ('Dubrovačko-neretvanska županija', false)
+on conflict (naziv) do update set
+  pokrivena = excluded.pokrivena;
 
 -- ---------------------------------------------------------------------
 -- Materijali

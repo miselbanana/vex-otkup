@@ -239,6 +239,7 @@ export type Database = {
           id: number
           lat: number | null
           lng: number | null
+          maticni_broj: number
           naziv: string
           opcina: string
           postanski_broj: string | null
@@ -248,6 +249,7 @@ export type Database = {
           id?: number
           lat?: number | null
           lng?: number | null
+          maticni_broj: number
           naziv: string
           opcina: string
           postanski_broj?: string | null
@@ -257,6 +259,7 @@ export type Database = {
           id?: number
           lat?: number | null
           lng?: number | null
+          maticni_broj?: number
           naziv?: string
           opcina?: string
           postanski_broj?: string | null
