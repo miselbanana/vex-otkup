@@ -207,7 +207,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 0.3 Supabase projekt i migracije
 - [x] 0.4 Shema baze
 - [~] 0.5 Početni podaci (materijali, klase, cijene, naselja)
-- [ ] 0.6 Prijava i zaštita admina
+- [x] 0.6 Prijava i zaštita admina
 - [ ] 0.7 Dizajn sistem i okviri stranica
 - [ ] 0.8 Objava na Vercelu
 
@@ -267,3 +267,8 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Pokreće se s `node scripts/uvoz-naselja.mts`. Ne treba novi paket ni tajni ključ.
   - Zapisuje `supabase/naselja.sql`, koji se upisuje s `npx supabase db query --remote --file supabase/naselja.sql --yes`, i to **nakon** `seed.sql`.
   - Sirovi podaci (~150 MB) su u `scripts/.cache/`, koji je u `.gitignore`.
+- 0.6: registracija je isključena u Supabaseu. Za sada postoji samo Mišelov korisnik. **Vedranov korisnik se dodaje kasnije** (Authentication → Users → Add user, uključi Auto Confirm User). Mora postojati prije puštanja uživo (1.15).
+- 0.6: `proxy.ts` radi samo na `/admin/:path*`, jer javni sajt ne treba prijavu. Admin API rute (npr. `/api/izvoz`) treba dodati u `matcher` kad nastanu.
+- 0.6: projekt ima uključen `cacheComponents`. Kolačići (prijava) smiju se čitati samo unutar `<Suspense>`, a `export const dynamic` nije dopušten. Zato je provjera korisnika u admin layoutu u komponenti `ZasticeniOkvir` unutar `<Suspense>`, a ne na vrhu layouta.
+- 0.6: zajednička provjera je `zahtijevajKorisnika()` u `src/lib/supabase/provjera.ts`. Koristi je svaka admin serverska akcija i API ruta.
+- 0.6: shadcn `input` i `label` dodani su već u 0.6 (trebali su za prijavu). U 0.7 ih ne treba ponovno dodavati.
