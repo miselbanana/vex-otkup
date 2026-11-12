@@ -197,8 +197,8 @@ Promjena varijable u Vercelu vrijedi tek nakon novog deploya.
 Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapiši i kratku bilješku ako je nešto odstupilo od plana.
 
 **Faza 0 — Postavka**
-- [ ] 0.1 Računi i radno okruženje
-- [ ] 0.2 Kostur projekta
+- [~] 0.1 Računi i radno okruženje
+- [x] 0.2 Kostur projekta
 - [ ] 0.3 Supabase projekt i migracije
 - [ ] 0.4 Shema baze
 - [ ] 0.5 Početni podaci (materijali, klase, cijene, naselja)
@@ -234,4 +234,9 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [ ] 2.8 Održavanje podataka
 
 **Bilješke / odstupanja od plana:**
-- (prazno)
+- 0.1: Node.js v26 LTS (instaliran u sesiji 0.2) i Git rade. Račune (Supabase, Vercel, Resend, Cloudflare, Meta) Mišel još potvrđuje.
+- 0.2: projekt je u `C:\Projekti\vex-otkup` (izvan OneDrivea, jer OneDrive zaključava `node_modules` i `.next`). Mapa se zove `vex-otkup` umjesto `otkup`.
+- 0.2: plan je premješten u `docs/plan-implementacije.md`.
+- 0.2: create-next-app je dodao `AGENTS.md` (upućuje na dokumentaciju instalirane verzije Next.js), zadržan je.
+- 0.2: shadcn 4.x koristi predložak `base-nova` (komponente na Base UI umjesto Radixa) i paket `cn` umjesto `clsx` + `tailwind-merge`.
+- 0.2: GitHub repozitorij je privatni `miselbanana/vex-otkup`, grana `main`.
