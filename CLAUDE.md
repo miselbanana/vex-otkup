@@ -60,9 +60,12 @@ Web servis za klijenta **Vedrana**, registriranog otkupljivača sekundarnih siro
 npm run dev                              # lokalni razvoj (localhost:3000)
 npm run build                            # provjera builda prije commita
 npm run lint
-supabase migration new <naziv>           # nova migracija u supabase/migrations/
-supabase db push                         # primijeni migracije na povezani projekt
-supabase gen types typescript --linked > src/lib/supabase/tipovi.ts
+npx supabase migration new <naziv>       # nova migracija u supabase/migrations/
+npx supabase db push --remote            # primijeni migracije na povezani projekt (bez --remote CLI traži lokalni Docker)
+npx supabase migration list --remote     # usporedi lokalne i primijenjene migracije
+npx supabase gen types typescript --remote > src/lib/supabase/tipovi.ts   # pokreni u Bashu, ne u PowerShellu (kodiranje)
+npx supabase db query --remote --file supabase/seed.sql --yes            # upiši početne podatke (cjenik)
+npx supabase db advisors --remote                                         # sigurnosna provjera baze
 ```
 
 ## Struktura
@@ -197,11 +200,11 @@ Promjena varijable u Vercelu vrijedi tek nakon novog deploya.
 Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapiši i kratku bilješku ako je nešto odstupilo od plana.
 
 **Faza 0 — Postavka**
-- [~] 0.1 Računi i radno okruženje
+- [x] 0.1 Računi i radno okruženje
 - [x] 0.2 Kostur projekta
-- [ ] 0.3 Supabase projekt i migracije
-- [ ] 0.4 Shema baze
-- [ ] 0.5 Početni podaci (materijali, klase, cijene, naselja)
+- [x] 0.3 Supabase projekt i migracije
+- [x] 0.4 Shema baze
+- [~] 0.5 Početni podaci (materijali, klase, cijene, naselja)
 - [ ] 0.6 Prijava i zaštita admina
 - [ ] 0.7 Dizajn sistem i okviri stranica
 - [ ] 0.8 Objava na Vercelu
@@ -234,9 +237,20 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [ ] 2.8 Održavanje podataka
 
 **Bilješke / odstupanja od plana:**
-- 0.1: Node.js v26 LTS (instaliran u sesiji 0.2) i Git rade. Račune (Supabase, Vercel, Resend, Cloudflare, Meta) Mišel još potvrđuje.
+- 0.1: Node.js v26 LTS (instaliran u sesiji 0.2) i Git rade. Svi računi (Supabase, Vercel, Resend, Cloudflare, Meta) su otvoreni.
 - 0.2: projekt je u `C:\Projekti\vex-otkup` (izvan OneDrivea, jer OneDrive zaključava `node_modules` i `.next`). Mapa se zove `vex-otkup` umjesto `otkup`.
 - 0.2: plan je premješten u `docs/plan-implementacije.md`.
 - 0.2: create-next-app je dodao `AGENTS.md` (upućuje na dokumentaciju instalirane verzije Next.js), zadržan je.
 - 0.2: shadcn 4.x koristi predložak `base-nova` (komponente na Base UI umjesto Radixa) i paket `cn` umjesto `clsx` + `tailwind-merge`.
 - 0.2: GitHub repozitorij je privatni `miselbanana/vex-otkup`, grana `main`.
+- 0.3: Supabase projekt `otkup-dev` (ref `zohzhxerpuxvlnavdruh`, Frankfurt) je povezan.
+- 0.3: Supabase CLI 3.x je instaliran kao npm razvojni paket (`npx supabase`), a ne preko Scoopa. Naredbe za bazu trebaju `--remote`, jer CLI inače traži lokalnu bazu u Dockeru, koji ne koristimo. `supabase link` nije tražio lozinku baze, jer koristi prijavu iz `supabase login`.
+- 0.3: u `.env.local` su novi ključevi (publishable / secret), ali pod starim nazivima varijabli `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`.
+- 0.3: paket `server-only` nije instaliran, jer ga Next.js 16 podržava sam.
+- 0.3: terminal koji je otvoren prije instalacije Node.js-a ne vidi `npm`. Rješenje je ponovno pokrenuti VS Code.
+- 0.4: migracija se zove `20261112160651_shema.sql` (CLI imenuje po vremenu), a ne `0001_shema.sql`.
+- 0.4: dodan enum `razlog_otkaza` (razlozi iz pravila domene) i provjera da otkazana narudžba uvijek ima razlog.
+- 0.4: `broj` narudžbe (`2026-0001`) dodjeljuje okidač `dodijeli_broj_narudzbe` preko pomoćne tablice `brojaci_narudzbi`. Brojanje kreće ispočetka svake godine (zona Europe/Zagreb).
+- 0.4: `ime_prezime`, `mobitel` i `ulica` su `not null`. Za anonimizaciju u 2.8 trebat će nova migracija.
+- 0.4: tipovi se generiraju s `--remote` (`--linked` je zastario u CLI 3.x), u Bashu.
+- 0.5 (djelomično, na Mišelov zahtjev): u `seed.sql` je **PRIVREMENI** cjenik (9 materijala, 17 klasa, procijenjene cijene). Upisan je u bazu. Zamijeniti Vedranovim cijenama i opisima. Naselja i županije još nisu napravljeni.
