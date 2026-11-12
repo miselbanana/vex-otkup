@@ -23,7 +23,6 @@ export function FormaPrijave({ sljedeca }: { sljedeca: string }) {
           type="email"
           autoComplete="email"
           required
-          className="h-12"
         />
       </div>
 
@@ -35,7 +34,6 @@ export function FormaPrijave({ sljedeca }: { sljedeca: string }) {
           type="password"
           autoComplete="current-password"
           required
-          className="h-12"
         />
       </div>
 
@@ -45,7 +43,7 @@ export function FormaPrijave({ sljedeca }: { sljedeca: string }) {
         </p>
       )}
 
-      <Button type="submit" disabled={saljeSe} className="h-12 text-base">
+      <Button type="submit" disabled={saljeSe}>
         {saljeSe ? 'Prijava…' : 'Prijavi se'}
       </Button>
     </form>

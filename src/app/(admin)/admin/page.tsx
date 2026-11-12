@@ -1,9 +1,6 @@
-// Privremeno. Popis narudžbi gradimo u koraku 1.8.
+import { redirect } from 'next/navigation'
+
+// /admin nema svoj sadržaj: prva stranica admina su narudžbe.
 export default function AdminPocetna() {
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold">Narudžbe</h1>
-      <p className="mt-2 text-muted-foreground">Uskoro.</p>
-    </div>
-  )
+  redirect('/admin/narudzbe')
 }

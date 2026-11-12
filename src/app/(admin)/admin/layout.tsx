@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
-import { GumbOdjava } from '@/components/admin/gumb-odjava'
+import Link from 'next/link'
+import { DonjaNavigacija } from '@/components/admin/donja-navigacija'
+import { Logo } from '@/components/logo'
 import { zahtijevajKorisnika } from '@/lib/supabase/provjera'
 
 // Uz cacheComponents se kolačići smiju čitati samo unutar <Suspense>.
@@ -19,12 +21,21 @@ async function ZasticeniOkvir({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* Privremena traka. Navigaciju i dizajn radimo u koraku 0.7. */}
-      <header className="flex items-center justify-between gap-4 border-b px-4 py-2">
-        <span className="truncate text-sm text-muted-foreground">{user.email}</span>
-        <GumbOdjava />
+      <header className="sticky top-0 z-30 border-b bg-card">
+        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
+          <Link href="/admin/narudzbe" aria-label="Narudžbe" className="rounded-lg">
+            <Logo bezOpisa />
+          </Link>
+          <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+            Admin
+          </span>
+        </div>
       </header>
-      <main className="flex-1 p-4">{children}</main>
+
+      {/* Donji razmak da sadržaj ne ode ispod donje navigacije. */}
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-4 pb-28">{children}</main>
+
+      <DonjaNavigacija email={user.email ?? ''} />
     </div>
   )
 }

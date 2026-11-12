@@ -208,7 +208,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 0.4 Shema baze
 - [~] 0.5 Početni podaci (materijali, klase, cijene, naselja)
 - [x] 0.6 Prijava i zaštita admina
-- [ ] 0.7 Dizajn sistem i okviri stranica
+- [x] 0.7 Dizajn sistem i okviri stranica
 - [ ] 0.8 Objava na Vercelu
 
 **Faza 1 — MVP**
@@ -272,3 +272,18 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 0.6: projekt ima uključen `cacheComponents`. Kolačići (prijava) smiju se čitati samo unutar `<Suspense>`, a `export const dynamic` nije dopušten. Zato je provjera korisnika u admin layoutu u komponenti `ZasticeniOkvir` unutar `<Suspense>`, a ne na vrhu layouta.
 - 0.6: zajednička provjera je `zahtijevajKorisnika()` u `src/lib/supabase/provjera.ts`. Koristi je svaka admin serverska akcija i API ruta.
 - 0.6: shadcn `input` i `label` dodani su već u 0.6 (trebali su za prijavu). U 0.7 ih ne treba ponovno dodavati.
+- 0.7: naziv tvrtke je **Čelik**. Logotip je `src/components/logo.tsx`: SVG I-nosač na bakrenoj pločici + naziv kao tekst.
+- 0.7: naziv, telefon i područje su na jednom mjestu, u `src/lib/kontakt.ts`. **Telefon je PRIVREMEN (`091 000 0000`)**. Zamijeniti Vedranovim brojem prije 1.15.
+- 0.7: shadcn `form` za `base-nova` ne postoji (prazan zapis u registryju). Umjesto njega je dodan **`field`**, koji je donio i `separator`. React Hook Form i Zod dodaju se u 1.3.
+- 0.7: `sonner` je instaliran **bez `next-themes`** (komponenta je prilagođena na stalno svijetli izgled). Tamni način (`.dark`) je uklonjen iz `globals.css`.
+- 0.7: zadane veličine shadcn komponenti su povećane.
+  - Gumb je visok 48 px, a ikona-gumb je 48×48.
+  - Polje i select su visoki 48 px, s bijelom pozadinom i uvijek 16 px teksta (inače iPhone zumira).
+  - Kartica: rub i `shadow-kartica`.
+  - Dijalog i sheet: `shadow-panel`.
+- 0.7: boje statusa su klase `bg-status-nova`, `text-status-potvrdjena` itd. Hover primarnog gumba je `primary-tamna`.
+- 0.7: početna je premještena u `src/app/(javno)/page.tsx`.
+  - `/admin` preusmjerava na `/admin/narudzbe`.
+  - Prazne admin stranice („Uskoro”): `narudzbe`, `cjenik`, `analitika`, `postavke`.
+  - „Više” u donjoj navigaciji otvara donji panel s Postavkama i Odjavom.
+- 0.7: u podnožju nema godine, jer uz `cacheComponents` `new Date()` ruši prerender. Gumb „Postavke kolačića” još ne radi ništa (spaja se u 1.13).
