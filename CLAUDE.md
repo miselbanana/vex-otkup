@@ -216,7 +216,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.1 Javni cjenik i kalkulator
 - [x] 1.2 Početna stranica
 - [x] 1.3 Narudžba — okvir i materijali
-- [ ] 1.4 Narudžba — fotografije
+- [x] 1.4 Narudžba — fotografije
 - [ ] 1.5 Narudžba — lokacija i termin
 - [ ] 1.6 Narudžba — kontakt i slanje
 - [ ] 1.7 Email obavijest Vedranu
@@ -314,4 +314,15 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 1.3: „Dalje” provjerava samo polja trenutnog koraka (`trigger`), a potpuno prazne retke tiho uklanja ako postoji i popunjeni redak. Enter na tipkovnici = Dalje.
 - 1.3: `/naruci` čita `searchParams` u komponenti unutar `<Suspense>` (pravilo uz `cacheComponents`). Naslov je statičan, a forma se dočita.
 - 1.3: `SpremiIzvor` (`spremi-izvor.tsx`, u javnom layoutu) sprema `utm_source/medium/campaign/content/term` i `fbclid` u sessionStorage pod ključem `izvor` (`KLJUC_IZVORA`), samo pri prvom dolasku u posjetu. Baza zasad ima stupce samo za `utm_source`, `utm_campaign` i `fbclid`.
-- 1.3: ako se paketi instaliraju dok radi `npm run dev`, Turbopack se može zbuniti („… is not a function”). Rješenje: ugasi i ponovno pokreni `npm run dev`.
+- 1.3: ako se paketi instaliraju dok radi `npm run dev`, Turbopack se može zbuniti („… is not a function”). Rješenje: ugasi i ponovno pokreni `npm run dev`. Ako ne pomogne, obriši i `.next/dev`. (Ponovilo se u 1.4 s `procitajKg is not a function`.)
+- 1.4: bucket `fotografije` nastaje migracijom `bucket_fotografije` (privatan, 2 MB, samo `image/jpeg`). Nema nijednog pravila (policy) na `storage.objects`: upload ide potpisanim linkovima, a anonimni ne vide ništa (provjereno). **U 1.9 treba dodati pravilo za čitanje prijavljenima**, ako se `createSignedUrls` radi s korisnikovom sesijom, a ne tajnim ključem.
+- 1.4: datoteka je `narudzba/korak-fotografije.tsx` (malim slovima). Konstante (`BUCKET_FOTOGRAFIJA`, `NAJVISE_FOTOGRAFIJA` = 5, `putanjaFotografije()`, tip `UploadOdgovor`) su u `src/lib/fotografije.ts`.
+- 1.4: smanjivanje je u `src/lib/smanji-fotografiju.ts`. Paket `browser-image-compression` 2.0.2 radi s `useWebWorker: false`, jer bi inače svoj kod skidao s CDN-a (jsdelivr). Sigurnosna mreža: ako paket vrati izvornu datoteku ili ne-JPEG, slika se ponovno iscrta na platnu (canvas), pa GPS sigurno nestaje. Provjereno na pravim fotografijama: ~130–150 KB, bez EXIF-a.
+- 1.4: umjesto jednog polja `accept="image/*"` postoje **dva gumba**: „Fotografiraj” (`capture="environment"`) i „Odaberi iz galerije” (`multiple`). Razlog: na nekim Androidima polje s `multiple` ne nudi kameru.
+- 1.4: fotografije se šalju kad kupac na koraku 2 pritisne **Dalje** (ne u pozadini).
+  - Forma dobiva `fotografije` (`kljuc`, `datoteka`, `pregled`, `putanja`) i `narudzbaId`.
+  - Ako su sve već poslane, ne šalje se ništa.
+  - Ako je dodana nova fotografija, sve se šalju ponovno pod novim id-om.
+  - Brisanje poslane fotografije ne traži ponovno slanje, pa putanje mogu imati rupe (npr. 1 i 3).
+  - Stare datoteke ostaju u Storageu bez narudžbe. Briše ih 2.8.
+- 1.4: `POST /api/narudzbe/upload` je javan i zasad bez Turnstilea (dolazi u 1.6). Prima `{ broj: 1–5 }` i vraća `{ id, linkovi: [{ putanja, token }] }`. Token vrijedi 2 sata i može se iskoristiti samo jednom.

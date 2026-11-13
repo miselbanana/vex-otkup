@@ -1,9 +1,10 @@
 import { z } from 'zod'
+import { NAJVISE_FOTOGRAFIJA } from '@/lib/fotografije'
 import { NAJVISE_STAVKI, greskaKolicine, procitajKg } from '@/lib/izracun'
 
 // Zod sheme narudžbe. Dijele ih preglednik (forma) i server (spremanje, korak 1.6).
-// Zasad sadrže samo materijale. Koraci 1.4–1.6 dodaju svoja polja
-// (fotografije, lokaciju i termin, kontakt) proširivanjem ovih shema.
+// Zasad sadrže materijale i fotografije. Koraci 1.5–1.6 dodaju svoja polja
+// (lokaciju i termin, kontakt) proširivanjem ovih shema.
 
 // ---------- Server: stavka kako stiže u zahtjevu ----------
 
@@ -58,8 +59,37 @@ export const korakMaterijaliShema = z.object({
     .max(NAJVISE_STAVKI, `Najviše ${NAJVISE_STAVKI} materijala u jednoj narudžbi`),
 })
 
+// ---------- Fotografije (korak 2) ----------
+
+// Server: zahtjev za potpisane linkove (POST /api/narudzbe/upload).
+export const uploadZahtjevShema = z.object({
+  broj: z.number().int().min(1).max(NAJVISE_FOTOGRAFIJA),
+})
+
+// Preglednik: fotografija u formi, već smanjena.
+// `pregled` je privremena adresa sličice (URL.createObjectURL), a `putanja`
+// je mjesto u Storageu nakon uploada (null dok nije poslana).
+export const fotografijaFormeShema = z.object({
+  kljuc: z.string(),
+  datoteka: z.instanceof(Blob),
+  pregled: z.string(),
+  putanja: z.string().nullable(),
+})
+
+export type FotografijaForme = z.input<typeof fotografijaFormeShema>
+
+// Korak 2: fotografije. `narudzbaId` dodjeljuje server pri uploadu
+// i kasnije je id narudžbe (zaštita od dvostrukog slanja, korak 1.6).
+export const korakFotografijeShema = z.object({
+  fotografije: z
+    .array(fotografijaFormeShema)
+    .min(1, 'Dodajte barem jednu fotografiju materijala')
+    .max(NAJVISE_FOTOGRAFIJA, `Najviše ${NAJVISE_FOTOGRAFIJA} fotografija`),
+  narudzbaId: z.string().nullable(),
+})
+
 // Cijela forma narudžbe. Kasniji koraci je proširuju svojim poljima.
-export const narudzbaFormeShema = korakMaterijaliShema
+export const narudzbaFormeShema = korakMaterijaliShema.extend(korakFotografijeShema.shape)
 
 // Vrijednosti forme dok se ispunjava, i one koje su prošle provjeru.
 export type NarudzbaForme = z.input<typeof narudzbaFormeShema>

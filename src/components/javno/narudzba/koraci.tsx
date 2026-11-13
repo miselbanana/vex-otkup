@@ -2,12 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, LoaderCircle } from 'lucide-react'
 import { FormProvider, useForm, type FieldPath } from 'react-hook-form'
+import { toast } from 'sonner'
+import { KorakFotografije } from '@/components/javno/narudzba/korak-fotografije'
 import { KorakMaterijali } from '@/components/javno/narudzba/korak-materijali'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import type { MaterijalCjenika } from '@/lib/cjenik'
+import { BUCKET_FOTOGRAFIJA, type UploadOdgovor } from '@/lib/fotografije'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { formatBrojUnos } from '@/lib/format'
 import type { StavkaUnos } from '@/lib/izracun'
@@ -22,7 +26,7 @@ import {
 // Koraci forme. `polja` su dijelovi forme koji se provjeravaju prije prelaska dalje.
 const KORACI: { naslov: string; polja: FieldPath<NarudzbaForme>[] }[] = [
   { naslov: 'Materijali', polja: ['stavke'] },
-  { naslov: 'Fotografije', polja: [] },
+  { naslov: 'Fotografije', polja: ['fotografije'] },
   { naslov: 'Lokacija i termin', polja: [] },
   { naslov: 'Kontakt', polja: [] },
 ]
@@ -53,9 +57,16 @@ export function Koraci({
 }) {
   const forma = useForm<NarudzbaForme, unknown, NarudzbaFormeProvjerena>({
     resolver: zodResolver(narudzbaFormeShema),
-    defaultValues: { stavke: pocetniRetci(pocetneStavke, materijali) },
+    defaultValues: {
+      stavke: pocetniRetci(pocetneStavke, materijali),
+      fotografije: [],
+      narudzbaId: null,
+    },
   })
   const [korak, setKorak] = useState(0)
+  // Broj fotografija koje se upravo smanjuju (korak 2) i traje li slanje fotografija.
+  const [smanjujem, setSmanjujem] = useState(0)
+  const [saljem, setSaljem] = useState(false)
   const naslovRef = useRef<HTMLHeadingElement>(null)
   const prviPrikaz = useRef(true)
 
@@ -68,6 +79,60 @@ export function Koraci({
     window.scrollTo({ top: 0 })
     naslovRef.current?.focus({ preventScroll: true })
   }, [korak])
+
+  // Kad kupac napusti stranicu, oslobodi memoriju sličica.
+  useEffect(() => {
+    return () => {
+      for (const f of forma.getValues('fotografije')) URL.revokeObjectURL(f.pregled)
+    }
+  }, [forma])
+
+  // Šalje fotografije izravno u Supabase Storage (ne kroz naš server).
+  // Ako su sve već poslane (kupac se samo vratio korak natrag), ne radi ništa.
+  // Ako je dodana nova, sve se šalju ponovno pod novim id-om narudžbe.
+  async function posaljiFotografije(): Promise<boolean> {
+    const fotografije = forma.getValues('fotografije')
+    if (forma.getValues('narudzbaId') !== null && fotografije.every((f) => f.putanja !== null)) {
+      return true
+    }
+
+    setSaljem(true)
+    try {
+      const odgovor = await fetch('/api/narudzbe/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ broj: fotografije.length }),
+      })
+      if (!odgovor.ok) throw new Error(`Ruta za upload vratila je ${odgovor.status}`)
+      const { id, linkovi } = (await odgovor.json()) as UploadOdgovor
+
+      const bucket = createClient().storage.from(BUCKET_FOTOGRAFIJA)
+      await Promise.all(
+        fotografije.map(async (f, i) => {
+          const { error } = await bucket.uploadToSignedUrl(
+            linkovi[i].putanja,
+            linkovi[i].token,
+            f.datoteka,
+            { contentType: 'image/jpeg' },
+          )
+          if (error) throw error
+        }),
+      )
+
+      forma.setValue(
+        'fotografije',
+        fotografije.map((f, i) => ({ ...f, putanja: linkovi[i].putanja })),
+      )
+      forma.setValue('narudzbaId', id)
+      return true
+    } catch (greska) {
+      console.error('Slanje fotografija nije uspjelo:', greska)
+      toast.error('Slanje fotografija nije uspjelo. Provjerite internet i pokušajte ponovno.')
+      return false
+    } finally {
+      setSaljem(false)
+    }
+  }
 
   async function dalje() {
     if (korak === 0) {
@@ -88,10 +153,13 @@ export function Koraci({
       })
       return
     }
+    if (korak === 1 && !(await posaljiFotografije())) return
     setKorak((k) => Math.min(k + 1, KORACI.length - 1))
   }
 
   const zadnji = korak === KORACI.length - 1
+  // Dalje čeka dok se fotografije smanjuju ili šalju.
+  const zauzeto = saljem || (korak === 1 && smanjujem > 0)
 
   return (
     <FormProvider {...forma}>
@@ -100,7 +168,7 @@ export function Koraci({
         onSubmit={(e) => {
           // Enter na tipkovnici = Dalje. Slanje narudžbe dolazi u koraku 1.6.
           e.preventDefault()
-          if (!zadnji) void dalje()
+          if (!zadnji && !zauzeto) void dalje()
         }}
         className="flex flex-col gap-6"
       >
@@ -127,8 +195,15 @@ export function Koraci({
 
           <CardContent>
             {korak === 0 && <KorakMaterijali materijali={materijali} />}
-            {korak > 0 && (
-              // Privremeno: ovi koraci se grade u 1.4, 1.5 i 1.6.
+            {korak === 1 && (
+              <KorakFotografije
+                smanjujem={smanjujem}
+                setSmanjujem={setSmanjujem}
+                zakljucano={saljem}
+              />
+            )}
+            {korak > 1 && (
+              // Privremeno: ovi koraci se grade u 1.5 i 1.6.
               <p className="text-muted-foreground">Ovaj korak uskoro dolazi.</p>
             )}
           </CardContent>
@@ -140,6 +215,7 @@ export function Koraci({
               type="button"
               variant="outline"
               onClick={() => setKorak((k) => Math.max(k - 1, 0))}
+              disabled={saljem}
               className="flex-1 sm:flex-none"
             >
               <ArrowLeft />
@@ -147,9 +223,23 @@ export function Koraci({
             </Button>
           )}
           {!zadnji && (
-            <Button type="submit" className="flex-1 sm:ml-auto sm:flex-none">
-              Dalje
-              <ArrowRight />
+            <Button type="submit" disabled={zauzeto} className="flex-1 sm:ml-auto sm:flex-none">
+              {saljem ? (
+                <>
+                  <LoaderCircle className="animate-spin" />
+                  Šaljem fotografije…
+                </>
+              ) : korak === 1 && smanjujem > 0 ? (
+                <>
+                  <LoaderCircle className="animate-spin" />
+                  Smanjujem…
+                </>
+              ) : (
+                <>
+                  Dalje
+                  <ArrowRight />
+                </>
+              )}
             </Button>
           )}
         </div>
