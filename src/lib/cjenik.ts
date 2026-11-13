@@ -21,8 +21,9 @@ export type MaterijalCjenika = {
 // Dohvaća cjenik za javni sajt.
 // Čita se tajnim ključem jer RLS anonimnim posjetiteljima ne dopušta čitanje tablica.
 // Zato se vraćaju SAMO javni stupci, a funkcija radi isključivo na serveru.
-// Rezultat se kešira: nakon promjene cjenika (korak 1.11) osvježava se s
-// revalidatePath('/cjenik') i revalidatePath('/'), a u svakom slučaju najkasnije za sat vremena.
+// Rezultat se kešira: nakon promjene cjenika u adminu (cjenik/akcije.ts) osvježava se s
+// updateTag('cjenik') te revalidatePath('/cjenik') i revalidatePath('/'),
+// a u svakom slučaju najkasnije za sat vremena.
 export async function dohvatiCjenik(): Promise<MaterijalCjenika[]> {
   'use cache'
   cacheLife('hours')

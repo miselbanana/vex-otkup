@@ -224,7 +224,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.8 Admin — popis narudžbi
 - [x] 1.9 Admin — detalji narudžbe i statusi
 - [x] 1.10 Admin — realizacija narudžbe
-- [ ] 1.11 Admin — uređivanje cjenika
+- [x] 1.11 Admin — uređivanje cjenika
 - [ ] 1.12 Instalacija admina na mobitel
 - [ ] 1.13 Politika privatnosti i kolačići
 - [ ] 1.14 Meta Pixel i Conversions API
@@ -419,3 +419,18 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 1.10: **uz `cacheComponents` Next.js stranicu pri odlasku ne briše, nego je sakrije (React `<Activity>`) i zapamti joj stanje.** Forma koja nakon spremanja radi `router.push` mora se sama vratiti u početno stanje. Inače je pri povratku i dalje „Spremam…”. Rješenje je `useLayoutEffect` s čišćenjem (cleanup) koje se izvodi samo nakon uspješnog spremanja i `key` na formi složen od podataka iz baze. Vidi `forma-realizacije.tsx` i `node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`. Isto vrijedi za forme u 1.11.
 - 1.10: kartica narudžbe u popisu (Nove, Realizirane, Otkazane, pretraga) **uvijek** prikazuje ime i prezime kupca (Mišelov zahtjev). Gumb Nazovi ostaje samo u „Nove” i pretrazi.
 - 1.10 (**dodatak izvan plana**, Mišel odobrio): kartica u rasporedu (Planer rute i Svi dani) ima gumb „Realiziraj” uz „Promijeni dan”.
+- 1.11: migracija `cjenik_azurirano`: okidač `klase_postavi_azurirano` mijenja `azurirano` **samo kad se promijeni cijena** (`when old.cijena_po_kg is distinct from new.cijena_po_kg`). Admin to prikazuje kao „Cijena promijenjena: …”. Provjereno u bazi.
+- 1.11: akcije cjenika su u `cjenik/akcije.ts`: `spremiCijenu`, `urediKlasu` (naziv + opis), `postaviAktivnu` i `dodajKlasu`.
+  - Nakon spremanja svaka akcija poziva `updateTag('cjenik')` + `revalidatePath('/cjenik')` + `revalidatePath('/')` + `refresh()`.
+  - `updateTag` je potreban jer je `dohvatiCjenik()` keširan oznakom `cjenik`, a koriste ga i `/naruci` i kalkulator.
+  - Cijena mora biti 0,01–100 €/kg. Isti naziv klase u istom materijalu javlja grešku (`23505`).
+  - Materijali se u adminu ne dodaju i ne gase (nije u planu).
+- 1.11: datoteka s `'use server'` smije izvoziti samo async funkcije (i tipove). Zato su sheme i granice u `src/lib/validacija/cjenik.ts` i `validacija/postavke.ts`, a ne u akcijama.
+- 1.11: admin cjenik čita `dohvatiCjenikUredivanje()` u `lib/admin/cjenik.ts`. Komponente su `redak-klase.tsx` (`key` = id-cijena-azurirano-aktivna) i `dijalog-klase.tsx` (dodaj / uredi).
+- 1.11: postavke kalendara su na `/admin/postavke`.
+  - Akcije su u `postavke/akcije.ts`: `spremiPostavkeKalendara`, `zatvoriDan(datum, razlog, ipak)` i `otvoriDan`.
+  - Zatvaranje dana koji već ima novih ili potvrđenih narudžbi vraća upozorenje i traži „Ipak zatvori”. Te narudžbe ostaju na tom danu, a popis zatvorenih dana ih prikazuje crveno.
+  - Dohvat je u `lib/admin/postavke.ts`. Komponente su `forma-postavki-kalendara.tsx` i `zatvoreni-dani.tsx`.
+  - Keš se ne osvježava, jer `/api/kalendar` nije keširan.
+  - Polazište (Reka) se samo prikazuje i ne može se mijenjati.
+- 1.11: `bodovaRijec(n)` („1 bod / 2 boda / 5 bodova”) je u `validacija/postavke.ts`.

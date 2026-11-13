@@ -369,6 +369,7 @@ Dodatak (dogovoreno 13. 11. 2026.): `src/app/(admin)/admin/postavke/page.tsx` do
 kapacitet dana (bodovi) i granice udaljenosti s bodovima
 zatvaranje i otvaranje pojedinih dana (godišnji, kvar kamiona) s razlogom
 Akcije `spremiPostavkeKalendara` i `zatvoriDan(datum, razlog)` / `otvoriDan(datum)`.
+(Izvedeno u 1.11: akcije cjenika uz `revalidatePath` pozivaju i `updateTag('cjenik')`, jer je javni cjenik keširan oznakom i koristi ga i `/naruci`. Dodane su akcije `urediKlasu`, `postaviAktivnu` i `dodajKlasu`. Datum uz cijenu mijenja se samo pri promjeni cijene (migracija `cjenik_azurirano`). `zatvoriDan` upozori ako dan već ima narudžbi i traži „Ipak zatvori”.)
 1.12 Instalacija admina na mobitel
 Opis: Admin dobiva ikonu na Androidu i otvara se kao aplikacija, bez adresne trake.
 Zadaci:
