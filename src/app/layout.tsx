@@ -16,12 +16,30 @@ const barlow = Barlow_Semi_Condensed({
   weight: ['600', '700'],
 })
 
+// Puna adresa sajta, potrebna za linkove u metapodacima (npr. slika za dijeljenje linka).
+// Redom: vlastita domena iz varijable, zatim produkcijska adresa na Vercelu, zatim lokalni razvoj.
+function adresaSajta() {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  }
+  return 'http://localhost:3000'
+}
+
 export const metadata: Metadata = {
+  metadataBase: new URL(adresaSajta()),
   title: {
     default: `${NAZIV} — ${OPIS.toLowerCase()}`,
     template: `%s | ${NAZIV}`,
   },
   description: 'Otkup bakra, čelika, aluminija, mesinga i drugih sirovina. Dolazimo po materijal.',
+  // Zajednička polja za dijeljenje linka. Stranice NE postavljaju svoj `openGraph`,
+  // jer bi time izbrisale ova polja i sliku iz opengraph-image.tsx.
+  openGraph: {
+    type: 'website',
+    locale: 'hr_HR',
+    siteName: NAZIV,
+  },
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

@@ -218,11 +218,28 @@ ulica i kućni broj
 gumb "Koristi moju lokaciju" (GPS, nije obavezan)
 napomena za vozača
 Ako je naselje izvan pokrivenih županija, kupac vidi poruku "Trenutno ne dolazimo na vaše područje" i telefon, bez mogućnosti nastavka.
-Kupac bira željeni datum (najranije sutra) i dio dana (jutro, popodne ili svejedno).
-Rezultat: Lokacija je uvijek povezana s naseljem iz baze, a GPS se sprema kad ga kupac dopusti.
+Kupac bira željeni datum u "živom" kalendaru (najranije sutra) i dio dana (jutro, popodne ili svejedno).
+Kalendar s bodovima (dogovoreno s Mišelom 13. 11. 2026.):
+Polazište je uvijek Reka kod Koprivnice (Starogradska 35, 48000 Reka). Za izračun se koriste koordinate naselja Reka iz tablice `naselja`, a ne geokodirana adresa (bez vanjskog servisa, razlika je manja od 1 km).
+Udaljenost je zračna (haversine) od Reke do naselja kupca. Cestom je otprilike 1,5 puta više, pa su granice preračunate na zračnu udaljenost:
+do 30 km = 1 bod (4 narudžbe u danu: Koprivnica, Križevci, Bjelovar, Đurđevac)
+30–90 km = 2 boda (2 u danu: Varaždin, Čakovec, Zagreb, Virovitica, Sisak)
+preko 90 km = 4 boda (cijeli dan: Požega, Karlovac, Slavonski Brod, Osijek, Vukovar, Rijeka)
+Kapacitet dana je 4 boda. Granice i kapacitet su postavke u bazi koje Vedran mijenja u adminu (1.11), a ne konstante u kodu.
+Dan zauzimaju narudžbe sa statusom `nova` i `potvrdjena`. Otkazivanjem se mjesto oslobađa.
+Zatvoreni su nedjelje, hrvatski državni blagdani (uključivo Uskrs, Uskrsni ponedjeljak i Tijelovo, koji se računaju) i dani koje Vedran ručno zatvori.
+Kalendar se prikazuje tek nakon odabira naselja, jer isti dan može biti slobodan za kupca iz blizine, a pun za kupca iz Osijeka. Kupac vidi samo slobodno/zauzeto, nikad tuđe narudžbe.
+Migracija u ovom koraku:
+tablica `postavke_kalendara` (jedan redak: `baza_naselje_id`, `kapacitet_dana`, granice u km i bodovi)
+tablica `zatvoreni_dani` (`datum date` primarni ključ, `razlog`)
+u `narudzbe` novi stupci: `datum_odvoza date` (dan koji zauzima kapacitet; pri narudžbi = `zeljeni_datum`, a Vedran ga može promijeniti pri potvrdi), `udaljenost_km numeric(6,1)`, `bodovi smallint` (spremaju se u trenutku narudžbe, pa kasnija promjena granica ne mijenja stare narudžbe) i `redoslijed integer` (za planer, 1.8)
+Postgres funkcija `slobodni_dani(naselje_id, od, do)` vraća dane na koje stane narudžba tog kupca.
+`src/app/api/kalendar/route.ts`: `GET ?naselje=ID` vraća slobodne dane za idućih 30 dana.
+`src/lib/blagdani.ts`: popis blagdana za godinu (Uskrs se računa).
+Rezultat: Lokacija je uvijek povezana s naseljem iz baze, a GPS se sprema kad ga kupac dopusti. Kupac ne može odabrati pun, zatvoren ili neradni dan.
 Napomena: Pretraga mora ignorirati kvačice, tako da "cakovec" pronađe "Čakovec". U bazi za to uključi ekstenziju `unaccent`.
 Mnoga naselja imaju isto ime, pa u rezultatima uvijek prikaži i općinu.
-Datum spremaj kao tip `date`, tako ga razlika vremenskih zona ne može pomaknuti na prethodni dan.
+Datum spremaj kao tip `date`, tako ga razlika vremenskih zona ne može pomaknuti na prethodni dan. "Sutra" se računa u zoni Europe/Zagreb.
 1.6 Narudžba — kontakt i slanje
 Opis: Zadnji korak: kontakt, privola, provjera protiv botova i spremanje narudžbe.
 Zadaci:
@@ -239,6 +256,7 @@ normalizira broj mobitela
 ponovno računa procjenu na serveru
 provjerava da fotografije postoje u Storageu
 upisuje sve kroz Postgres funkciju `kreiraj\_narudzbu` (narudžba, stavke i fotografije u jednoj transakciji)
+`kreiraj\_narudzbu` sama računa udaljenost i bodove iz naselja (ne vjeruje pregledniku) i unutar iste transakcije, uz zaključavanje tog dana (`pg\_advisory\_xact\_lock`), ponovno provjerava ima li mjesta. Ako dva kupca istovremeno uzmu zadnje mjesto, drugi dobiva poruku "Taj dan se upravo popunio, odaberite drugi" i vraća se na kalendar.
 `src/app/(javno)/naruci/hvala/page.tsx` prikazuje broj narudžbe i poruku da će kupca nazvati radi dogovora termina.
 Gumb za slanje je onemogućen dok slanje traje.
 Rezultat: Narudžba s mobitela završava u bazi sa svim stavkama i fotografijama. Dvostruki klik ne stvara dvije narudžbe.
@@ -273,9 +291,23 @@ broj i boju statusa
 mjesto i županiju
 materijale
 termin i koliko je narudžba stara ("prije 2 h")
+Kartica "Nove" je lista za potvrdu (dogovoreno 13. 11. 2026.). Narudžbe su poredane od najstarije, a svaka kartica uz gore navedeno ima:
+ime kupca, materijale s količinama i male sličice fotografija
+gumbe Nazovi (`tel:`), Potvrdi i Otkaži izravno na kartici, bez otvaranja detalja (dijalozi iz 1.9)
+Kartica "Raspored" je planer potvrđenih kupaca:
+grupirano po `datum\_odvoza`, uz svaki dan zbroj bodova (npr. "3/4")
+za svakog kupca: ime, adresa (naselje + ulica), materijali s količinama, dio dana, napomena za vozača, gumbi Nazovi i Navigiraj
+redoslijed unutar dana je automatski (jutro → popodne → svejedno, pa od najbližeg prema najdaljem od Reke), a Vedran ga strelicama gore/dolje mijenja. Ručni redoslijed sprema se u `narudzbe.redoslijed` (akcija `pomakni(id, smjer)`).
+Status se mijenja na istoj narudžbi, pa nema nikakvog "izvoza" među listama: potvrđena narudžba sama prelazi iz "Nove" u "Raspored".
+Popis uživo (dogovoreno 13. 11. 2026.):
+Supabase Realtime (`postgres\_changes` na tablici `narudzbe`) u klijentskoj komponenti: na svaku promjenu poziva `router.refresh()`. Migracija dodaje tablicu `narudzbe` u publikaciju `supabase\_realtime`. Realtime poštuje RLS, pa promjene vide samo prijavljeni korisnici.
+Osvježavanje kad se aplikacija vrati na ekran (`visibilitychange`), jer Android u pozadini prekida vezu.
+Gumb "Osvježi" na vrhu popisa (najmanje 48 px), uz natpis "Osvježeno prije X min".
+Mala oznaka stanja veze: zelena = uživo, siva = prekinuto (tada Vedran koristi gumb Osvježi).
+Kad je admin zatvoren, o novim narudžbama obavještavaju email (1.7) i push (2.5).
 Brojač novih narudžbi i pretraga po imenu, mobitelu ili mjestu.
 Prikazuje se zadnjih 50 narudžbi, a ostale preko gumba "Učitaj još".
-Rezultat: Vedran na mobitelu u dva dodira vidi današnje odvoze i nove narudžbe.
+Rezultat: Vedran na mobitelu u dva dodira vidi današnje odvoze i nove narudžbe. Nova narudžba se u otvorenom adminu pojavi sama, u roku od nekoliko sekundi.
 Napomena: Popis mora uvijek prikazivati svježe podatke. Ako ga Next.js spremi kao statičnu stranicu, Vedran vidi staro stanje. Provjeri to na Vercelu, ne samo lokalno.
 1.9 Admin — detalji narudžbe i statusi
 Opis: Sve što Vedranu treba za poziv i dolazak nalazi se na jednom ekranu.
@@ -286,7 +318,7 @@ adresu i gumb Navigiraj (Google Maps s koordinatama ili adresom)
 fotografije, koje se otvaraju preko cijelog zaslona
 stavke, termin i napomene
 U `src/app/(admin)/admin/narudzbe/akcije.ts` napravi tri akcije:
-`potvrdi(id, termin)`
+`potvrdi(id, datum, dioDana, vrijeme?)`: dijalog je unaprijed popunjen danom koji je kupac odabrao. Vedran ga može promijeniti ako su se na telefonu drukčije dogovorili. Novi dan se provjerava prema kapacitetu (kao u 1.5), a Vedran svjesno može i prekoračiti kapacitet, uz upozorenje. Sprema `datum\_odvoza`, `dio\_dana` i, ako je upisano točno vrijeme, `dogovoreni\_termin`.
 `otkazi(id, razlog)`
 `spremiNapomenu(id, tekst)`
 Razlog otkaza bira se iz izbornika:
@@ -322,6 +354,10 @@ Akcija `spremiCijenu(klasaId, cijena)` nakon spremanja poziva `revalidatePath('/
 Rezultat: Nova cijena odmah se vidi na javnom cjeniku i u kalkulatoru.
 Napomena: Next.js javne stranice sprema kao gotove. Bez `revalidatePath` kupci satima vide staru cijenu.
 Lokalno se to ne vidi, pa provjeri na Vercelu.
+Dodatak (dogovoreno 13. 11. 2026.): `src/app/(admin)/admin/postavke/page.tsx` dobiva postavke kalendara iz 1.5:
+kapacitet dana (bodovi) i granice udaljenosti s bodovima
+zatvaranje i otvaranje pojedinih dana (godišnji, kvar kamiona) s razlogom
+Akcije `spremiPostavkeKalendara` i `zatvoriDan(datum, razlog)` / `otvoriDan(datum)`.
 1.12 Instalacija admina na mobitel
 Opis: Admin dobiva ikonu na Androidu i otvara se kao aplikacija, bez adresne trake.
 Zadaci:
@@ -499,21 +535,22 @@ Ruta	Sadržaj	Faza
 Admin (samo prijavljeni)
 Ruta	Sadržaj	Faza
 `/prijava`	Prijava	0
-`/admin/narudzbe`	Nove · Raspored · Realizirane · Otkazane	1
+`/admin/narudzbe`	Nove (lista za potvrdu) · Raspored (planer) · Realizirane · Otkazane	1
 `/admin/narudzbe/\[id]`	Detalji, poziv, navigacija, statusi	1
 `/admin/narudzbe/\[id]/realizacija`	Upis stvarnih vrijednosti	1
 `/admin/cjenik`	Uređivanje cijena i klasa	1
 `/admin/analitika`	Nadzorna ploča i karta	2
-`/admin/postavke`	Push obavijesti	2
+`/admin/postavke`	Postavke kalendara (1), push obavijesti (2)	1, 2
 API rute
 Metoda i ruta	Namjena	Faza
 `GET /api/naselja?q=`	Pretraga naselja	1
+`GET /api/kalendar?naselje=`	Slobodni dani za kupca iz tog naselja	1
 `POST /api/narudzbe/upload`	Id narudžbe i linkovi za fotografije	1
 `POST /api/narudzbe`	Spremanje narudžbe, email, Meta CAPI	1
 `GET /api/admin/izvoz`	CSV izvoz	2
 `POST /api/push/pretplata`	Spremanje push pretplate	2
 `GET /api/cron/ciscenje`	Noćno čišćenje	2
-Serverske akcije (admin): `potvrdi`, `otkazi`, `spremiNapomenu`, `realiziraj`, `spremiCijenu`, `spremiKlasu`, `odjava`.
+Serverske akcije (admin): `potvrdi`, `otkazi`, `spremiNapomenu`, `pomakni`, `realiziraj`, `spremiCijenu`, `spremiKlasu`, `spremiPostavkeKalendara`, `zatvoriDan`, `otvoriDan`, `odjava`.
 Dizajn sistem
 Boje
 Naziv	HEX	Upotreba

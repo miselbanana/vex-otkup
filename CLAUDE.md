@@ -110,6 +110,7 @@ docs/plan-implementacije.md plan
   - Pri realizaciji je zadana **današnja** cijena iz cjenika, a Vedran je može ručno promijeniti.
 - **Procjene i stvarne vrijednosti nikad se ne zbrajaju zajedno.** Stvarne postoje samo za realizirane narudžbe.
 - **Narudžba je dopuštena samo iz pokrivenih županija** (`zupanije.pokrivena`). Ostali kupci vide Vedranov telefon.
+- **Termin ima kapacitet.** Dan vrijedi 4 boda. Narudžba troši 1, 2 ili 4 boda prema zračnoj udaljenosti od Vedranovog polazišta (Reka kod Koprivnice). Dan zauzimaju narudžbe sa statusom `nova` i `potvrdjena`. Nedjelje, blagdani i dani koje Vedran zatvori nisu dostupni. Detalji su u planu, korak 1.5.
 - **Lokacija je naselje s popisa iz baze** (+ ulica, + opcionalni GPS). Nikad slobodan tekst za mjesto.
 - **Osobni podaci kupca:** samo ime i prezime, mobitel, lokacija i fotografije.
   - Nema korisničkih računa za kupce.
@@ -213,7 +214,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 
 **Faza 1 — MVP**
 - [x] 1.1 Javni cjenik i kalkulator
-- [ ] 1.2 Početna stranica
+- [x] 1.2 Početna stranica
 - [ ] 1.3 Narudžba — okvir i materijali
 - [ ] 1.4 Narudžba — fotografije
 - [ ] 1.5 Narudžba — lokacija i termin
@@ -297,3 +298,10 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 1.1: na `/cjenik` zasad ne vodi nijedan link (ni u zaglavlju ni u podnožju). Dodaje se u 1.2.
 - 1.1: `parseBroj()` sam prepoznaje razdjelnik tisuća. Ako u broju ima i točke i zareza, zadnji znak je decimalni (`1.237,59` → 1237,59). Jedan znak s točno 3 znamenke iza je razdjelnik tisuća (`1.500` → 1500), osim kad je ispred nula (`0,500` → 0,5). Kalkulator nakon upisa prepiše broj u jasan oblik (`formatBrojUnos()`, npr. „1500”).
 - 1.1: u `next.config.ts` je dodano `allowedDevOrigins: ['192.168.*.*']` (vrijedi samo za razvoj). Bez toga Next.js blokira skripte kad se lokalni sajt otvori s mobitela u kućnoj mreži.
+- 1.2: početna je **bez fotografije** (Mišelova odluka, zbog brzine). Ima samo tekst, gumbe i ikone. Fotografija se može dodati kasnije preko `next/image`.
+- 1.2: sažetak cijena prikazuje prva 4 materijala iz cjenika u obliku „do X €/kg”, tj. najvišu cijenu klase.
+- 1.2: pokrivene županije čita `dohvatiPokriveneZupanije()` u `src/lib/zupanije.ts`. Keširano je na dan (`cacheTag('zupanije')`).
+- 1.2: slika za dijeljenje linka je `src/app/opengraph-image.tsx` (generira se pri buildu i vrijedi za sve stranice). Font je `src/assets/fonte/BarlowSemiCondensed-Bold.ttf` (OFL), jer zadani font slike nema sigurno sva hrvatska slova.
+- 1.2: **stranice ne smiju postavljati vlastiti `openGraph` u `metadata`.** Next.js ga ne spaja s onim iz korijenskog layouta, nego ga zamijeni u cijelosti, pa nestane slika. Zajednička polja (`type`, `locale`, `siteName`) su u `src/app/layout.tsx`, a naslov i opis za dijeljenje Next.js preuzima iz `title`/`description`.
+- 1.2: `metadataBase` u `layout.tsx` uzima redom `NEXT_PUBLIC_SITE_URL`, zatim `VERCEL_PROJECT_PRODUCTION_URL` (Vercel ga postavlja sam), zatim `localhost:3000`. `NEXT_PUBLIC_SITE_URL` treba dodati u Vercel kad dođe vlastita domena.
+- 1.2: link „Cjenik” dodan je u zaglavlje (samo od širine `sm`, na uskom mobitelu nema mjesta) i u podnožje. Gumb s `buttonVariants` sakriva se klasom `max-sm:hidden`, a ne s `hidden`, jer bi gumbov `inline-flex` pobijedio.

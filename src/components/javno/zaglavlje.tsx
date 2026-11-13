@@ -16,6 +16,14 @@ export function Zaglavlje() {
         </Link>
 
         <div className="flex items-center gap-2">
+          {/* Na uskom mobitelu nema mjesta za link, tamo do cjenika vodi početna stranica. */}
+          <Link
+            href="/cjenik"
+            // max-sm:hidden, a ne hidden: gumb već ima inline-flex, koji bi pobijedio običan hidden.
+            className={buttonVariants({ variant: 'ghost', className: 'max-sm:hidden' })}
+          >
+            Cjenik
+          </Link>
           {/* Na mobitelu samo ikona slušalice, a broj se prikazuje kad ima mjesta. */}
           <a
             href={TELEFON_LINK}

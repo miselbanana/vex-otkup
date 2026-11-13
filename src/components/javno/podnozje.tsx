@@ -28,7 +28,13 @@ export function Podnozje() {
           </ul>
         </div>
 
-        <nav aria-label="Pravne informacije" className="flex flex-col items-start sm:items-end">
+        <nav aria-label="Poveznice" className="flex flex-col items-start sm:items-end">
+          <Link
+            href="/cjenik"
+            className="inline-flex min-h-12 items-center underline-offset-4 hover:text-primary hover:underline"
+          >
+            Cjenik
+          </Link>
           <Link
             href="/politika-privatnosti"
             className="inline-flex min-h-12 items-center underline-offset-4 hover:text-primary hover:underline"
