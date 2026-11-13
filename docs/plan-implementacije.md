@@ -383,6 +383,7 @@ Manifest poveži samo u admin layoutu (`metadata.manifest`). Kupci ga tako nikad
 Na Vedranovom mobitelu u Chromeu otvori izbornik i odaberi Instaliraj aplikaciju.
 Rezultat: Na Vedranovom početnom zaslonu je ikona koja otvara popis narudžbi, a prijava ostaje zapamćena.
 Napomena: Na nekim mobitelima (npr. Samsung) zadani preglednik nije Chrome i izbornik izgleda drukčije. Instaliraj iz Chromea.
+(Izvedeno u 1.12: ikone u `public/ikone/` izrađuje `scripts/ikone-admina.mts`, a `viewport.themeColor` je u admin layoutu. Service worker se ne radi do 2.5.)
 1.13 Politika privatnosti i kolačići
 Opis: Zakonski minimum prije prvog oglasa: politika privatnosti i banner koji traži pristanak prije praćenja.
 Zadaci:

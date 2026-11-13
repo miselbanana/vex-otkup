@@ -69,6 +69,7 @@ node scripts/uvoz-naselja.mts                                             # pono
 npx supabase db query --remote --file supabase/naselja.sql --yes         # upiši naselja (nakon seed.sql)
 npx supabase db query --remote --file supabase/postavke.sql --yes        # postavke kalendara (nakon naselja.sql)
 npx supabase db advisors --remote                                         # sigurnosna provjera baze
+node scripts/ikone-admina.mts                                             # ponovno izradi ikone admin aplikacije (public/ikone/)
 ```
 
 ## Struktura
@@ -225,7 +226,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.9 Admin — detalji narudžbe i statusi
 - [x] 1.10 Admin — realizacija narudžbe
 - [x] 1.11 Admin — uređivanje cjenika
-- [ ] 1.12 Instalacija admina na mobitel
+- [x] 1.12 Instalacija admina na mobitel
 - [ ] 1.13 Politika privatnosti i kolačići
 - [ ] 1.14 Meta Pixel i Conversions API
 - [ ] 1.15 Testiranje i puštanje uživo
@@ -434,3 +435,10 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Keš se ne osvježava, jer `/api/kalendar` nije keširan.
   - Polazište (Reka) se samo prikazuje i ne može se mijenjati.
 - 1.11: `bodovaRijec(n)` („1 bod / 2 boda / 5 bodova”) je u `validacija/postavke.ts`.
+- 1.12: **bez migracije i bez novih paketa.** Manifest je `public/admin.webmanifest`: „Čelik admin”, `id`/`scope` `/admin`, `start_url` `/admin/narudzbe`, `standalone`, uspravno.
+  - Povezan je samo u `src/app/(admin)/admin/layout.tsx` (`metadata.manifest`), uz `viewport.themeColor` `#ffffff` (boja admin zaglavlja). Javne stranice i `/prijava` nemaju manifest (provjereno).
+  - Ikone su u `public/ikone/` (`admin-192/512.png` i `admin-maskable-192/512.png`). Izrađuje ih `scripts/ikone-admina.mts` iz istog crteža kao `ZnakLogotipa`, paketom `sharp` koji dolazi s Next.js-om (nije posebno instaliran).
+  - `proxy.ts` ne dira `/admin.webmanifest` ni ikone (matcher `/admin/:path*` ih ne hvata), pa se manifest učita i bez prijave (provjereno: 200, `application/manifest+json`).
+  - `/prijava` je izvan `scope`. Ako se prijava izgubi, otvori se unutar aplikacije s trakom adrese, a nakon prijave aplikacija se vraća na normalan prikaz.
+  - Service worker se ne radi do 2.5 (Chrome ga za instalaciju više ne traži).
+  - **Instalacija na Vedranovom mobitelu još nije napravljena** (ručni korak nakon objave na Vercelu).

@@ -1,0 +1,29 @@
+{
+  "id": "/admin",
+  "name": "Čelik admin",
+  "short_name": "Čelik admin",
+  "description": "Narudžbe, cjenik i raspored odvoza",
+  "lang": "hr",
+  "start_url": "/admin/narudzbe",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafaf9",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/ikone/admin-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/ikone/admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    {
+      "src": "/ikone/admin-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/ikone/admin-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,8 +1,20 @@
 import { Suspense } from 'react'
+import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
 import { DonjaNavigacija } from '@/components/admin/donja-navigacija'
 import { Logo } from '@/components/logo'
 import { zahtijevajKorisnika } from '@/lib/supabase/provjera'
+
+// Manifest je povezan samo ovdje, pa ga javne stranice nikad ne dobiju.
+// Kupcima Chrome tako ne nudi instalaciju, a Vedranu nudi „Čelik admin” (public/admin.webmanifest).
+export const metadata: Metadata = {
+  manifest: '/admin.webmanifest',
+}
+
+// Boja trake na vrhu mobitela = boja admin zaglavlja (bg-card).
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+}
 
 // Uz cacheComponents se kolačići smiju čitati samo unutar <Suspense>.
 // Zato provjera korisnika živi u komponenti ispod, a ne na vrhu layouta.
