@@ -38,6 +38,13 @@
   --color-status-realizirana: var(--status-realizirana);
   --color-status-otkazana: var(--status-otkazana);
 
+  /* Dani u kalendaru narudžbe */
+  --color-dan-slobodan: var(--dan-slobodan);
+  --color-dan-djelomicno: var(--dan-djelomicno);
+  --color-dan-popunjeno: var(--dan-popunjeno);
+  --color-dan-popunjeno-tekst: var(--dan-popunjeno-tekst);
+  --color-dan-neradni: var(--dan-neradni);
+
   /* Boje grafikona (Recharts, Faza 2) */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -89,6 +96,13 @@
   --status-potvrdjena: #a16207; /* jantar */
   --status-realizirana: #15803d; /* zelena */
   --status-otkazana: #78716c; /* siva */
+
+  /* Dani u kalendaru narudžbe: puna pozadina, tamni tekst */
+  --dan-slobodan: #86efac; /* zelena: cijeli dan slobodan */
+  --dan-djelomicno: #fde047; /* žuta: ima narudžbi, ali još ima mjesta */
+  --dan-popunjeno: #fecaca; /* svijetlocrvena (+ prekriženo): popunjeno */
+  --dan-popunjeno-tekst: #991b1b;
+  --dan-neradni: #d6d3d1; /* siva: nedjelje i blagdani */
 
   --chart-1: #b4531f;
   --chart-2: #1d4ed8;

@@ -4,7 +4,8 @@
 export const DANA_U_KALENDARU = 30
 
 // Odgovor rute GET /api/kalendar?naselje=ID.
-// Kupac vidi samo koji su dani slobodni, nikad tuđe narudžbe ni bodove.
+// Kupac vidi koji su dani slobodni i ima li slobodan dan već neku narudžbu,
+// ali nikad tuđe narudžbe, njihov broj ni bodove.
 export type KalendarOdgovor =
   | { pokriveno: false }
   | {
@@ -14,4 +15,6 @@ export type KalendarOdgovor =
       do: string
       // dani na koje stane narudžba iz tog naselja (bez nedjelja, blagdana, zatvorenih i punih dana)
       slobodni: string[]
+      // slobodni dani koji već imaju barem jednu narudžbu (žuti u kalendaru)
+      djelomicni: string[]
     }

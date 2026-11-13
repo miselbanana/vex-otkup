@@ -29,16 +29,11 @@ import { cn } from '@/lib/utils'
 import {
   DIJELOVI_DANA,
   NAJVISE_ZNAKOVA_NAPOMENE,
+  NAZIVI_DIJELA_DANA,
   type Naselje,
   type NarudzbaForme,
   type NarudzbaFormeProvjerena,
 } from '@/lib/validacija/narudzba'
-
-const NAZIVI_DIJELA_DANA: Record<(typeof DIJELOVI_DANA)[number], string> = {
-  jutro: 'Jutro',
-  popodne: 'Popodne',
-  svejedno: 'Svejedno',
-}
 
 // Korak 3: mjesto s popisa, ulica, GPS (nije obavezan), dan odvoza, dio dana i napomena.
 // Kalendar se prikazuje tek kad je odabrano mjesto, jer slobodni dani ovise o udaljenosti.

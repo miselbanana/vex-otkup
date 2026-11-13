@@ -1,11 +1,10 @@
 import { z } from 'zod'
 import { jeDatum } from '@/lib/datum'
+import { normalizirajMobitel } from '@/lib/format'
 import { NAJVISE_FOTOGRAFIJA } from '@/lib/fotografije'
 import { NAJVISE_STAVKI, greskaKolicine, procitajKg } from '@/lib/izracun'
 
-// Zod sheme narudžbe. Dijele ih preglednik (forma) i server (spremanje, korak 1.6).
-// Zasad sadrže materijale, fotografije te lokaciju i termin. Korak 1.6 dodaje
-// kontakt proširivanjem ovih shema.
+// Zod sheme narudžbe. Dijele ih preglednik (forma) i server (POST /api/narudzbe).
 
 // ---------- Server: stavka kako stiže u zahtjevu ----------
 
@@ -115,6 +114,12 @@ export type Naselje = z.infer<typeof naseljeShema>
 
 export const DIJELOVI_DANA = ['jutro', 'popodne', 'svejedno'] as const
 
+export const NAZIVI_DIJELA_DANA: Record<(typeof DIJELOVI_DANA)[number], string> = {
+  jutro: 'Jutro',
+  popodne: 'Popodne',
+  svejedno: 'Svejedno',
+}
+
 export const NAJVISE_ZNAKOVA_NAPOMENE = 500
 
 // Korak 3: lokacija i termin. GPS (lat, lng) nije obavezan.
@@ -141,11 +146,96 @@ export const korakLokacijaShema = z.object({
   dioDana: z.enum(DIJELOVI_DANA),
 })
 
-// Cijela forma narudžbe. Kasniji koraci je proširuju svojim poljima.
+// ---------- Kontakt (korak 4) ----------
+
+const imePrezimeShema = z
+  .string()
+  .trim()
+  .min(2, 'Upišite ime i prezime')
+  .max(100, 'Najviše 100 znakova')
+
+const PORUKA_MOBITELA = 'Upišite broj mobitela, npr. 091 234 5678'
+
+// Korak 4: kontakt i privola. Mobitel ostaje onako kako ga je kupac upisao,
+// a u oblik +3859… pretvara ga server (narudzbaZahtjevShema).
+export const korakKontaktShema = z.object({
+  imePrezime: imePrezimeShema,
+  mobitel: z.string().refine((m) => normalizirajMobitel(m) !== null, PORUKA_MOBITELA),
+  privola: z.boolean().refine((p) => p, 'Za narudžbu je potrebna vaša privola'),
+})
+
+// Cijela forma narudžbe.
 export const narudzbaFormeShema = korakMaterijaliShema
   .extend(korakFotografijeShema.shape)
   .extend(korakLokacijaShema.shape)
+  .extend(korakKontaktShema.shape)
 
 // Vrijednosti forme dok se ispunjava, i one koje su prošle provjeru.
 export type NarudzbaForme = z.input<typeof narudzbaFormeShema>
 export type NarudzbaFormeProvjerena = z.output<typeof narudzbaFormeShema>
+
+// ---------- Server: zahtjev za spremanje (POST /api/narudzbe) ----------
+
+// Iznos se namjerno NE šalje: server ga sam računa iz cjenika.
+export const narudzbaZahtjevShema = z
+  .object({
+    // id iz koraka uploada fotografija; drugi isti zahtjev ne stvara novu narudžbu
+    id: z.uuid(),
+    stavke: z.array(stavkaShema).min(1).max(NAJVISE_STAVKI),
+    fotografije: z
+      .array(z.string().regex(/^narudzbe\/[0-9a-f-]{36}\/[1-5]\.jpg$/))
+      .min(1)
+      .max(NAJVISE_FOTOGRAFIJA),
+    naseljeId: z.number().int().positive().max(2_147_483_647),
+    ulica: korakLokacijaShema.shape.ulica,
+    lat: korakLokacijaShema.shape.lat,
+    lng: korakLokacijaShema.shape.lng,
+    napomena: korakLokacijaShema.shape.napomena,
+    zeljeniDatum: z.string().refine(jeDatum),
+    dioDana: z.enum(DIJELOVI_DANA),
+    imePrezime: imePrezimeShema,
+    // "091/234-5678" → "+385912345678"
+    mobitel: z.string().transform((m, ctx) => {
+      const normaliziran = normalizirajMobitel(m)
+      if (normaliziran === null) {
+        ctx.addIssue({ code: 'custom', message: PORUKA_MOBITELA })
+        return z.NEVER
+      }
+      return normaliziran
+    }),
+    privola: z.literal(true),
+    turnstileToken: z.string().min(1).max(2048),
+    // odakle je kupac došao (oglas); sve je neobavezno
+    izvor: z
+      .object({
+        utm_source: z.string().max(500).optional(),
+        utm_campaign: z.string().max(500).optional(),
+        fbclid: z.string().max(500).optional(),
+      })
+      .optional(),
+  })
+  // GPS se sprema samo kao par (oba ili nijedno).
+  .refine((n) => (n.lat === null) === (n.lng === null), 'Neispravna lokacija')
+  // Sve fotografije moraju biti u mapi ove narudžbe.
+  .refine(
+    (n) => n.fotografije.every((p) => p.startsWith(`narudzbe/${n.id}/`)),
+    'Neispravne fotografije',
+  )
+
+export type NarudzbaZahtjev = z.input<typeof narudzbaZahtjevShema>
+
+// Naziv radnje u Turnstileu. Server provjerava da je token izdan baš za narudžbu.
+export const TURNSTILE_AKCIJA = 'narudzba'
+
+// Odgovor rute POST /api/narudzbe. Po `kod` forma zna kamo vratiti kupca.
+export type KodGreskeNarudzbe =
+  | 'turnstile'
+  | 'podaci'
+  | 'dan'
+  | 'dan_popunjen'
+  | 'fotografije'
+  | 'cjenik'
+  | 'podrucje'
+  | 'server'
+
+export type NarudzbaOdgovor = { broj: string } | { greska: string; kod: KodGreskeNarudzbe }

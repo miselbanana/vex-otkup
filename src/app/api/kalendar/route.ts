@@ -11,7 +11,8 @@ import { kalendarUpitShema } from '@/lib/validacija/narudzba'
 // a pun za kupca iz Osijeka, jer daljina troši više bodova.
 //
 // Nedjelje, ručno zatvorene i pune dane izbacuje funkcija slobodni_dani u bazi,
-// a blagdane ova ruta (blagdani.ts). Kupac ne vidi tuđe narudžbe ni bodove.
+// a blagdane ova ruta (blagdani.ts). Za slobodne dane kupac saznaje samo ima li
+// već neka narudžba (žuti dan), a nikad tuđe narudžbe, njihov broj ni bodove.
 // Ruta je javna i ne kešira se, jer se dan može popuniti svakog trenutka.
 export async function GET(request: NextRequest) {
   const provjera = kalendarUpitShema.safeParse({
@@ -44,21 +45,25 @@ export async function GET(request: NextRequest) {
 
   const od = sutraUZagrebu()
   const doDana = dodajDane(od, DANA_U_KALENDARU - 1)
-  const { data: dani, error } = await supabase.rpc('slobodni_dani', {
-    p_naselje_id: naseljeId,
-    p_od: od,
-    p_do: doDana,
-  })
+  const [slobodniRez, zauzetiRez] = await Promise.all([
+    supabase.rpc('slobodni_dani', { p_naselje_id: naseljeId, p_od: od, p_do: doDana }),
+    supabase.rpc('dani_s_narudzbama', { p_od: od, p_do: doDana }),
+  ])
+  const error = slobodniRez.error ?? zauzetiRez.error
   if (error) {
     console.error('Slobodni dani nisu učitani:', error)
     return Response.json({ greska: 'Kalendar trenutno ne radi.' }, { status: 500 })
   }
 
+  const slobodni = (slobodniRez.data ?? []).filter((dan) => !jeBlagdan(dan))
+  // Samo za slobodne dane kupac saznaje ima li već narudžbi (žuti dan).
+  const sNarudzbama = new Set(zauzetiRez.data ?? [])
   const odgovor: KalendarOdgovor = {
     pokriveno: true,
     od,
     do: doDana,
-    slobodni: dani.filter((dan) => !jeBlagdan(dan)),
+    slobodni,
+    djelomicni: slobodni.filter((dan) => sNarudzbama.has(dan)),
   }
   return Response.json(odgovor, bezKesa)
 }

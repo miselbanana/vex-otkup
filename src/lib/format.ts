@@ -1,5 +1,4 @@
 // Pomoćne funkcije za prikaz i unos.
-// Normalizacija mobitela u oblik +3859… dodaje se kad zatreba za kontakt kupca (korak 1.6).
 
 // Ispisuje iznos u eurima na hrvatski način: 1234.5 → "1.234,50 €".
 // Namjerno ručno, a ne preko Intl.NumberFormat: tako server i preglednik
@@ -67,4 +66,21 @@ export function parseBroj(tekst: string): number | null {
 // Tako kupac nakon upisa vidi kako je broj shvaćen, bez dvoumljenja oko točke.
 export function formatBrojUnos(broj: number): string {
   return String(broj).replace('.', ',')
+}
+
+// Hrvatski broj mobitela u jedinstvenom obliku za bazu: "+385912345678".
+// Kupac ga smije upisati kako god želi:
+//   "091 234 5678" / "091/234-5678" / "(091) 234-5678"  → +385912345678
+//   "+385 91 234 5678" / "00385912345678" / "385912345678" → +385912345678
+//   "098 123 456" (stariji, kraći broj)                    → +38598123456
+// Za broj koji nije hrvatski mobitel (09…) vraća null.
+export function normalizirajMobitel(tekst: string): string | null {
+  let s = tekst.replace(/[\s/\-.()]/g, '')
+  const pozivni = /^(\+385|00385|385)/.exec(s)
+  if (pozivni) s = s.slice(pozivni[0].length)
+  // Nula iza pozivnog ("+385 (0)91…") ili na početku ("091…") se izostavlja.
+  if (s.startsWith('0')) s = s.slice(1)
+  else if (!pozivni) return null
+  // Mobiteli počinju s 9 i imaju još 7 ili 8 znamenki.
+  return /^9\d{7,8}$/.test(s) ? `+385${s}` : null
 }

@@ -432,6 +432,31 @@ export type Database = {
           udaljenost_km: number
         }[]
       }
+      dani_s_narudzbama: {
+        Args: { p_do: string; p_od: string }
+        Returns: string[]
+      }
+      kreiraj_narudzbu: {
+        Args: {
+          p_dio_dana: Database["public"]["Enums"]["dio_dana"]
+          p_fbclid?: string
+          p_fotografije: string[]
+          p_id: string
+          p_ime_prezime: string
+          p_lat?: number
+          p_lng?: number
+          p_mobitel: string
+          p_napomena?: string
+          p_naselje_id: number
+          p_stavke: Json
+          p_ulica: string
+          p_utm_campaign?: string
+          p_utm_source?: string
+          p_zeljeni_datum: string
+        }
+        Returns: string
+      }
+      oblik_za_pretragu: { Args: { tekst: string }; Returns: string }
       slobodni_dani: {
         Args: { p_do: string; p_naselje_id: number; p_od: string }
         Returns: string[]

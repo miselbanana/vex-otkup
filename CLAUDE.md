@@ -219,7 +219,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.3 Narudžba — okvir i materijali
 - [x] 1.4 Narudžba — fotografije
 - [x] 1.5 Narudžba — lokacija i termin
-- [ ] 1.6 Narudžba — kontakt i slanje
+- [x] 1.6 Narudžba — kontakt i slanje
 - [ ] 1.7 Email obavijest Vedranu
 - [ ] 1.8 Admin — popis narudžbi
 - [ ] 1.9 Admin — detalji narudžbe i statusi
@@ -326,7 +326,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Ako je dodana nova fotografija, sve se šalju ponovno pod novim id-om.
   - Brisanje poslane fotografije ne traži ponovno slanje, pa putanje mogu imati rupe (npr. 1 i 3).
   - Stare datoteke ostaju u Storageu bez narudžbe. Briše ih 2.8.
-- 1.4: `POST /api/narudzbe/upload` je javan i zasad bez Turnstilea (dolazi u 1.6). Prima `{ broj: 1–5 }` i vraća `{ id, linkovi: [{ putanja, token }] }`. Token vrijedi 2 sata i može se iskoristiti samo jednom.
+- 1.4: `POST /api/narudzbe/upload` je javan i bez Turnstilea (u 1.6 odlučeno da tako i ostane). Prima `{ broj: 1–5 }` i vraća `{ id, linkovi: [{ putanja, token }] }`. Token vrijedi 2 sata i može se iskoristiti samo jednom.
 - 1.5: dvije migracije: `kalendar` i `pretraga_dj`.
   - Pretraga (`trazi_naselja`) uspoređuje oblik bez kvačica, malim slovima, a „dj” svodi na „d” (`oblik_za_pretragu`). Zato „djurdjevac” i „durdevac” nađu Đurđevac.
   - Pogađa naziv koji počinje upitom ili riječ u nazivu („reka” → „Donja Reka”). Pokrivene županije su prve.
@@ -345,3 +345,26 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Kalendar prima fokus greške preko `data-fokus-greske` (Dalje traži taj atribut i `aria-invalid`).
 - 1.5: GPS gumb na mobitelu radi samo preko https-a (Vercel), a ne na lokalnoj adresi `http://192.168…`.
 - 1.5: polja forme za korak 3 su `naselje` (objekt iz pretrage), `ulica`, `lat`, `lng`, `napomena`, `zeljeniDatum` i `dioDana`. `napomena` ide u stupac `napomena_kupca` (1.6).
+- 1.6: migracija `kreiraj_narudzbu`. Funkcija zaključa dan (`pg_advisory_xact_lock`) i u jednoj transakciji upisuje narudžbu, stavke i fotografije.
+  - Sama računa bodove, udaljenost, cijene i procjenu. Iznos se iz preglednika uopće ne šalje.
+  - Isti `id` poslan ponovno vraća broj već spremljene narudžbe. Ne javlja grešku i ne stvara drugu narudžbu.
+  - Greške vraća porukama `IZVAN_PODRUCJA`, `DAN_NIJE_DOSTUPAN`, `DAN_POPUNJEN`, `KLASA_NEDOSTUPNA` i `NEISPRAVNI_PODACI`. Ruta ih pretvara u `kod` (`NarudzbaOdgovor` u `validacija/narudzba.ts`).
+  - Neobavezni parametri (GPS, napomena, UTM) imaju `default null`, pa su u `tipovi.ts` neobavezni. Migracija je jednom poništena (`migration repair --status reverted`) i ponovno primijenjena, jer prva verzija to nije imala.
+  - Poziva je samo `service_role` (provjereno).
+- 1.6: `POST /api/narudzbe` redom provjerava Turnstile, Zod, dan (kalendar od 30 dana + blagdan), fotografije u Storageu (`list`), a zatim poziva `kreiraj_narudzbu`.
+- 1.6: Turnstile je **samo pri slanju narudžbe** (Mišelova odluka). `/api/narudzbe/upload` ostaje bez njega.
+  - Widget je vlastita komponenta `src/components/javno/turnstile.tsx`, bez npm paketa. Provjera na serveru je u `src/lib/turnstile.ts`.
+  - Naziv radnje je `narudzba` (`TURNSTILE_AKCIJA`).
+  - U `.env.local` su Cloudflareovi **testni** ključevi (`1x00…`). Pravi ključevi rade samo na `otkup-rho.vercel.app` i nalaze se samo u Vercelu (site key kao Config, secret kao Secret). Za vlastitu domenu (1.15) treba je dodati u Cloudflare widget.
+- 1.6: `normalizirajMobitel()` u `format.ts` prihvaća samo hrvatske mobitele (`+3859` + 7–8 znamenki).
+- 1.6: korak 4 je `narudzba/korak-kontakt.tsx`, a zahvala je `/naruci/hvala?broj=2026-0001` (noindex).
+  - Privola vodi na `/politika-privatnosti`, koja do 1.13 daje 404.
+  - Nakon neuspjelog slanja forma vraća kupca na pravi korak: dan → kalendar, fotografije → korak 2, cjenik → korak 1. Turnstile se svaki put postavlja ispočetka.
+- 1.6 (dopuna 1.5 na Mišelov zahtjev, **odstupanje od plana**): kalendar ima 4 stanja, a ispod je legenda.
+  - Zeleno: slobodan dan bez narudžbi.
+  - Žuto: već ima narudžbi, ali ima mjesta. Kupac tako sazna da taj dan postoji neka narudžba, ali ne i koliko ih je ni čije su. Mišel je to svjesno prihvatio.
+  - Prekriženo: popunjeno. Tako izgleda i dan koji Vedran ručno zatvori.
+  - Sivo: nedjelje i blagdani.
+  - Nova migracija `kalendar_djelomicni` dodaje funkciju `dani_s_narudzbama(od, do)`. `/api/kalendar` vraća i `djelomicni`.
+  - Svaki dan ima punu boju pozadine, bez obruba: zelena, žuta, svijetlocrvena + prekriženo, siva. Na Mišelov zahtjev su pune boje, a ne blijede nijanse.
+  - Boje su tokeni `dan-slobodan`, `dan-djelomicno`, `dan-popunjeno` (+ `-tekst`) i `dan-neradni` u `globals.css`.

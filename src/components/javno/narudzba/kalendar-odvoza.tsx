@@ -11,6 +11,48 @@ import { cn } from '@/lib/utils'
 
 const DANI_TJEDNA = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned']
 
+// Četiri stanja dana u kalendaru:
+//   slobodan  – nema nijedne narudžbe (zeleno)
+//   djelomican – već ima narudžbi, ali stane i ova (žuto)
+//   popunjen  – ova narudžba više ne stane (prekriženo); i dan koji je Vedran zatvorio
+//   neradni   – nedjelja ili blagdan (sivo)
+type StanjeDana = 'slobodan' | 'djelomican' | 'popunjen' | 'neradni'
+
+function stanjeDana(
+  dan: string,
+  slobodni: Set<string>,
+  djelomicni: Set<string>,
+  blagdan: string | null,
+): StanjeDana {
+  if (slobodni.has(dan)) return djelomicni.has(dan) ? 'djelomican' : 'slobodan'
+  if (blagdan !== null || danUTjednu(dan) === 7) return 'neradni'
+  return 'popunjen'
+}
+
+// Svaka vrsta dana ima punu boju pozadine (bez obruba). Slobodni dani na dodir dobiju bakreni rub.
+const IZGLED_STANJA: Record<StanjeDana, string> = {
+  slobodan: 'cursor-pointer border-transparent bg-dan-slobodan text-foreground hover:border-primary',
+  djelomican:
+    'cursor-pointer border-transparent bg-dan-djelomicno text-foreground hover:border-primary',
+  popunjen: 'border-transparent bg-dan-popunjeno text-dan-popunjeno-tekst line-through',
+  neradni: 'border-transparent bg-dan-neradni text-muted-foreground',
+}
+
+// Za čitače zaslona (dodaje se iza naziva dana).
+const OPIS_STANJA: Record<StanjeDana, string> = {
+  slobodan: 'slobodno',
+  djelomican: 'ima još mjesta',
+  popunjen: 'popunjeno',
+  neradni: 'ne radimo',
+}
+
+const LEGENDA: { stanje: StanjeDana; tekst: string }[] = [
+  { stanje: 'slobodan', tekst: 'Slobodno' },
+  { stanje: 'djelomican', tekst: 'Ima još mjesta' },
+  { stanje: 'popunjen', tekst: 'Popunjeno' },
+  { stanje: 'neradni', tekst: 'Ne radimo (nedjelje i blagdani)' },
+]
+
 type Props = {
   naseljeId: number
   odabrano: string | null
@@ -109,6 +151,7 @@ export function KalendarOdvoza({
   }
 
   const slobodni = new Set(odgovor.slobodni)
+  const djelomicni = new Set(odgovor.djelomicni)
   const dani: string[] = []
   for (let dan = odgovor.od; dan <= odgovor.do; dan = dodajDane(dan, 1)) dani.push(dan)
   // Prazna polja prije prvog dana, da svaki dan bude u stupcu svog dana u tjednu.
@@ -135,27 +178,25 @@ export function KalendarOdvoza({
             <span key={`prazno-${i}`} aria-hidden="true" />
           ))}
           {dani.map((dan) => {
-            const slobodan = slobodni.has(dan)
             const odabran = dan === odabrano
             const blagdan = nazivBlagdana(dan)
+            const stanje = stanjeDana(dan, slobodni, djelomicni, blagdan)
             // Na prvom danu kalendara i prvom u mjesecu piše i mjesec ("1. pro").
             const sMjesecom = dan === odgovor.od || dan.endsWith('-01')
-            let opis = ''
-            if (!slobodan) opis = blagdan ? ` – ${blagdan}, ne radimo` : ' – zauzeto'
+            const opis =
+              stanje === 'neradni' && blagdan ? `${blagdan}, ne radimo` : OPIS_STANJA[stanje]
             return (
               <button
                 key={dan}
                 type="button"
-                disabled={!slobodan}
+                disabled={stanje === 'popunjen' || stanje === 'neradni'}
                 aria-pressed={odabran}
-                aria-label={`${formatDan(dan)}${opis}`}
+                aria-label={`${formatDan(dan)} – ${opis}`}
                 title={blagdan ?? undefined}
                 onClick={() => onOdabir(dan)}
                 className={cn(
                   'flex h-12 min-w-0 flex-col items-center justify-center rounded-lg border text-base tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                  slobodan
-                    ? 'cursor-pointer bg-card hover:border-primary'
-                    : 'border-transparent bg-muted/60 text-muted-foreground line-through',
+                  IZGLED_STANJA[stanje],
                   odabran && 'border-primary bg-primary text-primary-foreground hover:border-primary',
                 )}
               >
@@ -169,9 +210,23 @@ export function KalendarOdvoza({
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Prekriženi dani su popunjeni ili neradni (nedjelje i blagdani).
-      </p>
+      {/* Legenda: mali primjeri dana, isti izgled kao u kalendaru. */}
+      <ul className="grid grid-cols-1 gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+        {LEGENDA.map(({ stanje, tekst }) => (
+          <li key={stanje} className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={cn(
+                'flex size-7 shrink-0 items-center justify-center rounded-md border text-xs tabular-nums',
+                IZGLED_STANJA[stanje],
+              )}
+            >
+              5
+            </span>
+            {tekst}
+          </li>
+        ))}
+      </ul>
       {odabrano && slobodni.has(odabrano) && (
         <p aria-live="polite">
           Odabrano: <strong className="font-semibold">{formatDan(odabrano)}</strong>

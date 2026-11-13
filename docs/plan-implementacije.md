@@ -228,7 +228,7 @@ preko 90 km = 4 boda (cijeli dan: Požega, Karlovac, Slavonski Brod, Osijek, Vuk
 Kapacitet dana je 4 boda. Granice i kapacitet su postavke u bazi koje Vedran mijenja u adminu (1.11), a ne konstante u kodu.
 Dan zauzimaju narudžbe sa statusom `nova` i `potvrdjena`. Otkazivanjem se mjesto oslobađa.
 Zatvoreni su nedjelje, hrvatski državni blagdani (uključivo Uskrs, Uskrsni ponedjeljak i Tijelovo, koji se računaju) i dani koje Vedran ručno zatvori.
-Kalendar se prikazuje tek nakon odabira naselja, jer isti dan može biti slobodan za kupca iz blizine, a pun za kupca iz Osijeka. Kupac vidi samo slobodno/zauzeto, nikad tuđe narudžbe.
+Kalendar se prikazuje tek nakon odabira naselja, jer isti dan može biti slobodan za kupca iz blizine, a pun za kupca iz Osijeka. Kupac nikad ne vidi tuđe narudžbe ni njihov broj. Kalendar ima četiri stanja (dopuna dogovorena s Mišelom u 1.6): zeleno = slobodan dan bez narudžbi, žuto = već ima narudžbi, ali ima mjesta, prekriženo = popunjeno (i dani koje Vedran zatvori), sivo = nedjelje i blagdani. Žute dane daje funkcija `dani_s_narudzbama(od, do)`.
 Migracija u ovom koraku:
 tablica `postavke_kalendara` (jedan redak: `baza_naselje_id`, `kapacitet_dana`, granice u km i bodovi)
 tablica `zatvoreni_dani` (`datum date` primarni ključ, `razlog`)
