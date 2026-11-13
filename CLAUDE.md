@@ -209,7 +209,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [~] 0.5 Početni podaci (materijali, klase, cijene, naselja)
 - [x] 0.6 Prijava i zaštita admina
 - [x] 0.7 Dizajn sistem i okviri stranica
-- [ ] 0.8 Objava na Vercelu
+- [x] 0.8 Objava na Vercelu
 
 **Faza 1 — MVP**
 - [ ] 1.1 Javni cjenik i kalkulator
@@ -287,3 +287,6 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Prazne admin stranice („Uskoro”): `narudzbe`, `cjenik`, `analitika`, `postavke`.
   - „Više” u donjoj navigaciji otvara donji panel s Postavkama i Odjavom.
 - 0.7: u podnožju nema godine, jer uz `cacheComponents` `new Date()` ruši prerender. Gumb „Postavke kolačića” još ne radi ništa (spaja se u 1.13).
+- 0.8: adresa je **`otkup-rho.vercel.app`**, a ne `otkup.vercel.app`, jer je ime `otkup` bilo zauzeto. Vercel je na Hobby planu do 1.15.
+- 0.8: u Vercelu su zasad samo 3 Supabase varijable. Ostale se dodaju u koraku u kojem zatrebaju, a nakon svake treba Redeploy.
+- 0.8: tajni ključ projekta `otkup-dev` pojavio se u razgovoru s Claudeom i nije zamijenjen (Mišelova odluka). Produkcija (`otkup-prod`, 1.15) dobiva nove ključeve.
