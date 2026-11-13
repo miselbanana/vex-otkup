@@ -1,13 +1,173 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { KarticaNarudzbe } from '@/components/admin/kartica-narudzbe'
+import { KarticeNarudzbi } from '@/components/admin/kartice-narudzbi'
+import { PopisUzivo } from '@/components/admin/popis-uzivo'
+import { PretragaNarudzbi } from '@/components/admin/pretraga-narudzbi'
+import { Raspored } from '@/components/admin/raspored'
+import { buttonVariants } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  KARTICE,
+  NARUDZBI_PO_STRANICI,
+  brojNovih,
+  dohvatiNarudzbe,
+  linkoviFotografija,
+  procitajBroj,
+  zauzetostDana,
+  type Kartica,
+} from '@/lib/admin/narudzbe'
+import { grupirajPoDanu } from '@/lib/admin/raspored'
+import { danasUZagrebu } from '@/lib/datum'
+import { zahtijevajKorisnika } from '@/lib/supabase/provjera'
 
 export const metadata: Metadata = { title: 'Narudžbe' }
 
-// Privremeno. Popis narudžbi gradimo u koraku 1.8.
-export default function StranicaNarudzbi() {
+type SearchParams = PageProps<'/admin/narudzbe'>['searchParams']
+
+// Vedranov glavni ekran: nove narudžbe, raspored odvoza, realizirane i otkazane.
+// Naslov je statičan, a popis se uvijek slaže svjež na serveru (čita prijavu i link),
+// pa ga Next.js nikad ne sprema kao statičnu stranicu.
+export default function StranicaNarudzbi({ searchParams }: PageProps<'/admin/narudzbe'>) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
       <h1>Narudžbe</h1>
-      <p className="text-muted-foreground">Uskoro.</p>
+      <Suspense fallback={<KosturPopisa />}>
+        <Popis searchParams={searchParams} />
+      </Suspense>
+    </div>
+  )
+}
+
+function tekst(vrijednost: string | string[] | undefined): string {
+  return typeof vrijednost === 'string' ? vrijednost : ''
+}
+
+async function Popis({ searchParams }: { searchParams: SearchParams }) {
+  const parametri = await searchParams
+  const { supabase } = await zahtijevajKorisnika()
+
+  const trazenaKartica = tekst(parametri.kartica)
+  const kartica: Kartica = (KARTICE as readonly string[]).includes(trazenaKartica)
+    ? (trazenaKartica as Kartica)
+    : 'nove'
+  const upit = tekst(parametri.q).trim().slice(0, 100)
+  const broj = procitajBroj(tekst(parametri.broj))
+
+  const [{ narudzbe, imaJos }, novih] = await Promise.all([
+    dohvatiNarudzbe(supabase, { kartica, upit, broj }),
+    brojNovih(supabase),
+  ])
+
+  // Trenutak slaganja popisa: za "prije 2 h" na karticama i "Osvježeno prije X min".
+  // Ovo je serverska komponenta koja se izvodi jednom po zahtjevu (nakon čitanja
+  // prijave i linka), pa je čitanje sata ovdje namjerno.
+  // eslint-disable-next-line react-hooks/purity
+  const sada = Date.now()
+  const danas = danasUZagrebu()
+
+  let sadrzaj: React.ReactNode
+  if (narudzbe.length === 0) {
+    sadrzaj = <PrazanPopis kartica={kartica} upit={upit} />
+  } else if (!upit && kartica === 'raspored') {
+    const { dolazeci, prosli } = grupirajPoDanu(narudzbe, danas)
+    const { bodovi, kapacitet } = await zauzetostDana(supabase, [
+      ...new Set(narudzbe.map((n) => n.datum_odvoza)),
+    ])
+    sadrzaj = (
+      <Raspored
+        dolazeci={dolazeci}
+        prosli={prosli}
+        bodovi={bodovi}
+        kapacitet={kapacitet}
+        danas={danas}
+        sada={sada}
+      />
+    )
+  } else {
+    // Sličice samo u kartici "Nove" (Vedran ih gleda prije poziva).
+    const nove = !upit && kartica === 'nove'
+    const slicice = nove
+      ? await linkoviFotografija(
+          supabase,
+          narudzbe.flatMap((n) => n.fotografije.map((f) => f.putanja)),
+        )
+      : undefined
+    sadrzaj = (
+      <ul className="flex flex-col gap-3">
+        {narudzbe.map((n) => (
+          <li key={n.id}>
+            <KarticaNarudzbe narudzba={n} sada={sada} kupac={nove || !!upit} slicice={slicice} />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  // "Učitaj još" zadržava otvorenu karticu ili pretragu.
+  const linkJos = new URLSearchParams()
+  if (upit) linkJos.set('q', upit)
+  else if (kartica !== 'nove') linkJos.set('kartica', kartica)
+  linkJos.set('broj', String(broj + NARUDZBI_PO_STRANICI))
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PopisUzivo osvjezeno={sada} />
+      <PretragaNarudzbi upit={upit} />
+
+      {upit ? (
+        <p className="text-sm text-muted-foreground">
+          Rezultati pretrage za „{upit}” (sve narudžbe, od najnovije)
+        </p>
+      ) : (
+        <KarticeNarudzbi aktivna={kartica} brojNovih={novih} />
+      )}
+
+      {sadrzaj}
+
+      {imaJos && (
+        <Link
+          href={`/admin/narudzbe?${linkJos}`}
+          scroll={false}
+          className={buttonVariants({ variant: 'outline', className: 'w-full' })}
+        >
+          Učitaj još
+        </Link>
+      )}
+    </div>
+  )
+}
+
+const PORUKE_PRAZNOG: Record<Kartica, string> = {
+  nove: 'Nema novih narudžbi. Nova će se ovdje pojaviti sama.',
+  raspored: 'Nema potvrđenih odvoza.',
+  realizirane: 'Još nema realiziranih narudžbi.',
+  otkazane: 'Nema otkazanih narudžbi.',
+}
+
+function PrazanPopis({ kartica, upit }: { kartica: Kartica; upit: string }) {
+  return (
+    <Card>
+      <CardContent>
+        <p className="text-muted-foreground">
+          {upit ? 'Nijedna narudžba ne odgovara pretrazi.' : PORUKE_PRAZNOG[kartica]}
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Privremeni prikaz dok se popis učitava.
+function KosturPopisa() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true">
+      <div className="h-12 animate-pulse rounded-lg bg-muted" />
+      <div className="h-12 animate-pulse rounded-lg bg-muted" />
+      <div className="h-14 animate-pulse rounded-xl bg-muted" />
+      <div className="h-40 animate-pulse rounded-xl bg-muted" />
+      <div className="h-40 animate-pulse rounded-xl bg-muted" />
+      <span className="sr-only">Učitavanje…</span>
     </div>
   )
 }

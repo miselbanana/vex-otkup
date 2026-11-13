@@ -461,6 +461,45 @@ export type Database = {
         Args: { p_do: string; p_naselje_id: number; p_od: string }
         Returns: string[]
       }
+      trazi_narudzbe: {
+        Args: { upit: string }
+        Returns: {
+          bodovi: number
+          broj: string
+          created_at: string
+          datum_odvoza: string
+          dio_dana: Database["public"]["Enums"]["dio_dana"]
+          dogovoreni_termin: string | null
+          fbclid: string | null
+          id: string
+          ime_prezime: string
+          lat: number | null
+          lng: number | null
+          mobitel: string
+          napomena_interna: string | null
+          napomena_kupca: string | null
+          naselje_id: number
+          potvrdjena_at: string | null
+          privola_at: string
+          procjena_ukupno: number
+          razlog_otkaza: Database["public"]["Enums"]["razlog_otkaza"] | null
+          realizirana_at: string | null
+          redoslijed: number | null
+          status: Database["public"]["Enums"]["status_narudzbe"]
+          stvarno_ukupno: number | null
+          udaljenost_km: number
+          ulica: string
+          utm_campaign: string | null
+          utm_source: string | null
+          zeljeni_datum: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "narudzbe"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       trazi_naselja: {
         Args: { upit: string }
         Returns: {

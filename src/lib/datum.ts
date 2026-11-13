@@ -16,6 +16,11 @@ export function jeDatum(tekst: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === tekst
 }
 
+// Današnji dan u Hrvatskoj, bez obzira na to gdje radi server (Vercel radi u UTC-u).
+export function danasUZagrebu(): string {
+  return format(TZDate.tz(ZONA), 'yyyy-MM-dd')
+}
+
 // Sutrašnji dan u Hrvatskoj, bez obzira na to gdje radi server (Vercel radi u UTC-u).
 export function sutraUZagrebu(): string {
   return format(addDays(TZDate.tz(ZONA), 1), 'yyyy-MM-dd')

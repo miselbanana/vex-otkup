@@ -84,3 +84,10 @@ export function normalizirajMobitel(tekst: string): string | null {
   // Mobiteli počinju s 9 i imaju još 7 ili 8 znamenki.
   return /^9\d{7,8}$/.test(s) ? `+385${s}` : null
 }
+
+// Mobitel iz baze u obliku za čitanje: "+385912345678" → "091 234 5678",
+// "+38598123456" → "098 123 456". Nepoznat oblik vraća nepromijenjen.
+export function prikaziMobitel(mobitel: string): string {
+  const m = /^\+385(9\d)(\d{3})(\d{3,4})$/.exec(mobitel)
+  return m ? `0${m[1]} ${m[2]} ${m[3]}` : mobitel
+}

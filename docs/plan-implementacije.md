@@ -290,12 +290,14 @@ Kartica narudžbe prikazuje:
 broj i boju statusa
 mjesto i županiju
 materijale
+ukupno kg i okvirni iznos za isplatu (procjena; dodano u 1.8)
 termin i koliko je narudžba stara ("prije 2 h")
-Kartica "Nove" je lista za potvrdu (dogovoreno 13. 11. 2026.). Narudžbe su poredane od najstarije, a svaka kartica uz gore navedeno ima:
+Kartica "Nove" je lista za potvrdu (dogovoreno 13. 11. 2026.). Narudžbe su poredane od najnovije (na vrhu) prema starijima (izmjena u 1.8), a svaka kartica uz gore navedeno ima:
 ime kupca, materijale s količinama i male sličice fotografija
 gumbe Nazovi (`tel:`), Potvrdi i Otkaži izravno na kartici, bez otvaranja detalja (dijalozi iz 1.9)
 Kartica "Raspored" je planer potvrđenih kupaca:
 grupirano po `datum\_odvoza`, uz svaki dan zbroj bodova (npr. "3/4")
+na vrhu svakog dana sažetak (dodano u 1.8, "Raspored = planer prikupa"): broj kupaca, ukupno kg i okvirna gotovina za isplatu svima; pojedinačno ukupno kg i okvirni iznos je na svakoj narudžbi
 za svakog kupca: ime, adresa (naselje + ulica), materijali s količinama, dio dana, napomena za vozača, gumbi Nazovi i Navigiraj
 redoslijed unutar dana je automatski (jutro → popodne → svejedno, pa od najbližeg prema najdaljem od Reke), a Vedran ga strelicama gore/dolje mijenja. Ručni redoslijed sprema se u `narudzbe.redoslijed` (akcija `pomakni(id, smjer)`).
 Status se mijenja na istoj narudžbi, pa nema nikakvog "izvoza" među listama: potvrđena narudžba sama prelazi iz "Nove" u "Raspored".
@@ -321,6 +323,7 @@ U `src/app/(admin)/admin/narudzbe/akcije.ts` napravi tri akcije:
 `potvrdi(id, datum, dioDana, vrijeme?)`: dijalog je unaprijed popunjen danom koji je kupac odabrao. Vedran ga može promijeniti ako su se na telefonu drukčije dogovorili. Novi dan se provjerava prema kapacitetu (kao u 1.5), a Vedran svjesno može i prekoračiti kapacitet, uz upozorenje. Sprema `datum\_odvoza`, `dio\_dana` i, ako je upisano točno vrijeme, `dogovoreni\_termin`.
 `otkazi(id, razlog)`
 `spremiNapomenu(id, tekst)`
+`promijeniDan(id, datum)` za već potvrđenu narudžbu (dogovoreno u 1.8: Raspored je planer prikupa, pa se narudžba u dan dodaje potvrdom, a premješta ovom akcijom). Ista provjera kapaciteta kao kod potvrde, a `redoslijed` se poništava (`null`), pa narudžba u novom danu dobiva automatsko mjesto.
 Razlog otkaza bira se iz izbornika:
 lažna narudžba
 kupac odustao
@@ -328,7 +331,14 @@ ne javlja se
 premala količina
 izvan područja
 ostalo
-Rezultat: Vedran iz narudžbe zove kupca te potvrđuje termin ili otkazuje s razlogom. Novi status se odmah vidi u popisu.
+Gumbi Potvrdi i Otkaži (s istim dijalozima) dodaju se i na karticu u "Nove" (1.8 ima samo Nazovi).
+Planer rute (dogovoreno s Mišelom u 1.8, "ruta = jedan dan"):
+tab "Raspored" dobiva dva pogleda: "Planer rute" i "Svi dani" (ovo što je napravljeno u 1.8)
+Planer rute prikazuje jedan dan (zadano danas, strelice ◀ ▶ i odabir dana): sažetak dana (kupci, bodovi "3/4", ukupno kg, okvirna gotovina), narudžbe tog dana s redoslijedom (strelice iz 1.8) i ukupnim po narudžbi
+gumb "Dodaj narudžbu u ovaj dan" otvara popis ostalih potvrđenih narudžbi (s njihovim danom) i premješta odabranu u taj dan preko `promijeniDan` (provjera kapaciteta, uz upozorenje može i preko)
+gumb "Makni iz dana" otvara isti dijalog promjene dana (narudžba uvijek ima dan; nova se prvo potvrdi)
+nema nove tablice: ruta dana = potvrđene narudžbe s tim `datum\_odvoza`
+Rezultat: Vedran iz narudžbe zove kupca te potvrđuje termin ili otkazuje s razlogom. Novi status se odmah vidi u popisu. U planeru rute za odabrani dan dodaje i premješta narudžbe i odmah vidi koliko kila i gotovine treba za taj dan.
 Napomena: Fotografije prikazuj preko potpisanih linkova (`createSignedUrls`, s trajanjem od jednog sata), jer je bucket privatan.
 Razlog "lažna narudžba" kasnije pokazuje radi li zaštita, pa ga nemoj preskakati.
 1.10 Admin — realizacija narudžbe

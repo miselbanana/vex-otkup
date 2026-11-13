@@ -221,7 +221,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.5 Narudžba — lokacija i termin
 - [x] 1.6 Narudžba — kontakt i slanje
 - [ ] 1.7 Email obavijest Vedranu
-- [ ] 1.8 Admin — popis narudžbi
+- [x] 1.8 Admin — popis narudžbi
 - [ ] 1.9 Admin — detalji narudžbe i statusi
 - [ ] 1.10 Admin — realizacija narudžbe
 - [ ] 1.11 Admin — uređivanje cjenika
@@ -368,3 +368,22 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Nova migracija `kalendar_djelomicni` dodaje funkciju `dani_s_narudzbama(od, do)`. `/api/kalendar` vraća i `djelomicni`.
   - Svaki dan ima punu boju pozadine, bez obruba: zelena, žuta, svijetlocrvena + prekriženo, siva. Na Mišelov zahtjev su pune boje, a ne blijede nijanse.
   - Boje su tokeni `dan-slobodan`, `dan-djelomicno`, `dan-popunjeno` (+ `-tekst`) i `dan-neradni` u `globals.css`.
+- 1.8 rađen **prije 1.7** (1.7 čeka DNS; plan to dopušta, 1.8 ovisi samo o 0.6 i 1.6).
+- 1.8: migracija `popis_narudzbi`:
+  - `narudzbe` je u publikaciji `supabase_realtime` (popis uživo). Anonimni ne dobivaju ništa (RLS).
+  - pravilo na `storage.objects`: prijavljeni smiju **čitati** bucket `fotografije`. Zato `createSignedUrls` radi s Vedranovom sesijom, bez tajnog ključa (bilješka iz 1.4 je riješena).
+  - funkcija `trazi_narudzbe(upit)` vraća `setof narudzbe` (pa radi ugnježđivanje veza): ime, naselje i općina bez kvačica, mobitel po znamenkama (bez `0`/`385`, i zadnje znamenke), broj narudžbe. Anonimni je ne smiju zvati (provjereno).
+- 1.8: dohvat je u `src/lib/admin/narudzbe.ts` (`dohvatiNarudzbe`, `brojNovih`, `zauzetostDana`, `linkoviFotografija`), oznake i `linkNavigacije()` u `src/lib/admin/oznake.ts`, redoslijed dana u `src/lib/admin/raspored.ts` (`poredajDan`, isti za prikaz i akciju). `danasUZagrebu()` je u `datum.ts`, `prikaziMobitel()` u `format.ts`.
+  - Stanje popisa je u linku: `?kartica=raspored|realizirane|otkazane`, `?q=` (pretraga preko **svih** statusa, kartice se tada skrivaju), `?broj=100` (Učitaj još).
+  - Stavka ima dvije veze na `klase`, pa se u upitu piše `klase!klasa_id`.
+  - Komponente: `kartice-narudzbi`, `kartica-narudzbe`, `raspored`, `strelice-redoslijeda`, `pretraga-narudzbi` (Next.js `<Form>`, bez klijentskog koda), `popis-uzivo` u `src/components/admin/`.
+  - `popis-uzivo`: Realtime → `router.refresh()` (više promjena zaredom spaja se u jedno, 300 ms), `visibilitychange`, gumb Osvježi, „Osvježeno prije X min” (vrijeme dolazi sa servera) i točkica uživo/nije uživo.
+  - Akcija `pomakni(id, smjer)` u `narudzbe/akcije.ts` upiše `redoslijed` 1…n za cijeli dan i pozove `refresh()` iz `next/cache`. **Pri promjeni dana (1.9) `redoslijed` treba vratiti na `null`.**
+  - `Date.now()` u serverskoj stranici traži `eslint-disable-next-line react-hooks/purity` (namjerno, jednom po zahtjevu).
+- 1.8 (izmjene na Mišelov zahtjev, **odstupanje od plana**, plan je ažuriran):
+  - „Nove” su poredane od **najnovije** (na vrhu), a ne od najstarije.
+  - svaka narudžba ima redak „Ukupno” (kg) i „Okvirno za isplatu” (`procjena_ukupno`). **U 1.10 realizirane trebaju pokazati stvarni iznos** („Isplaćeno”), nikad zbrojen s procjenom.
+  - Raspored je planer prikupa: na vrhu svakog dana je sažetak (broj kupaca, ukupno kg, okvirna gotovina). Raspored se ne reže na 50, da zbroj dana ne bude nepotpun.
+  - Na kartici u „Nove” je zasad samo **Nazovi**. Kartica još ne vodi na detalje. Potvrdi, Otkaži, Promijeni dan i **Planer rute** („ruta = jedan dan”, dodavanje narudžbe u dan) dogovoreni su za 1.9 i upisani u plan.
+- 1.8: u razvojnoj bazi je 9 testnih narudžbi (2026-0001 … 0009) s testnim fotografijama, poslanih kroz javni API. Statusi su postavljeni SQL-om. Ostaju za testiranje 1.9 i 1.10.
+- 1.8: s mobitela u kućnoj mreži admin radi na `http://<IP računala>:3000/admin/narudzbe` (IP je bio `192.168.1.101`, može se promijeniti).
