@@ -223,7 +223,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [ ] 1.7 Email obavijest Vedranu
 - [x] 1.8 Admin — popis narudžbi
 - [x] 1.9 Admin — detalji narudžbe i statusi
-- [ ] 1.10 Admin — realizacija narudžbe
+- [x] 1.10 Admin — realizacija narudžbe
 - [ ] 1.11 Admin — uređivanje cjenika
 - [ ] 1.12 Instalacija admina na mobitel
 - [ ] 1.13 Politika privatnosti i kolačići
@@ -402,3 +402,20 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 1.9: Raspored ima dva pogleda (`planer-rute.tsx`): **Planer rute je zadan** (Mišelova odluka), „Svi dani” je `&pogled=svi`. Dan planera je u linku `&dan=GGGG-MM-DD` (danas bez njega, `linkPlanera()` u `lib/admin/raspored.ts`). U prošli dan se ne može dodavati.
   - Planer pokaže i koliko novih (nepotvrđenih) narudžbi zauzima dan (`zauzetostDana` vraća i `nove`) te upozori za nedjelju, blagdan ili zatvoren dan (`zatvorenDan()`).
 - 1.9: dodano `ukupnoKg()` u `oznake.ts`.
+- 1.10: migracija `realizacija`:
+  - `stavke.kg_prijavljeno` smije biti **0**. To znači da je stavku Vedran dodao pri vaganju, jer je kupac nije prijavio. Javne narudžbe i dalje imaju > 0 (provjerava `kreiraj_narudzbu`). `klasa_id` ostaje `not null`, a `cijena_kg_prijavljena` dodane stavke je današnja cijena iz cjenika.
+  - funkcija `realiziraj_narudzbu(p_id, p_stavke)` (`security invoker`, smiju je zvati samo prijavljeni, provjereno) sprema sve u jednoj transakciji. Radi za `potvrdjena` (realizacija) i `realizirana` (ispravak). Sama računa `iznos_stvarni` i `stvarno_ukupno` (zaokruženo tek na kraju, pa zbroj redaka može odstupiti za 1 cent).
+  - Svaka prijavljena stavka mora dobiti stvarne vrijednosti (0 kg = „nije bilo”). Dodane stavke koje Vedran pri ispravku makne se brišu. Ukupno mora biti > 0 kg (inače je to otkaz).
+  - `realizirana_at` se postavlja samo pri prvoj realizaciji, a ispravak ga ne mijenja.
+  - Greške: `NIJE_DOSTUPNA`, `NEISPRAVNI_PODACI`.
+- 1.10: akcija `realiziraj(id, stavke)` u `narudzbe/akcije.ts`. Iznos se iz preglednika ne šalje.
+- 1.10: stranica `/admin/narudzbe/[id]/realizacija` + `components/admin/forma-realizacije.tsx` (`useState`, bez React Hook Forma).
+  - Stavke su unaprijed popunjene: stvarne vrijednosti (ako je ispravak), inače prijavljena klasa i kg te **današnja** cijena.
+  - Klasa je izbornik grupiran po materijalu: aktivne klase + trenutna klasa stavke ako je ugašena. Promjena klase postavi njezinu današnju cijenu.
+  - Na dnu je traka zalijepljena iznad donje navigacije: „Za isplatu” + gumb za spremanje.
+- 1.10: cjenik za admin čita `dohvatiCjenikAdmin()` u `src/lib/admin/cjenik.ts`. Čita se svježe, sesijom korisnika i bez keša, a vraća i ugašene klase (`aktivna`).
+- 1.10: `izracun.ts`: `procitajKg`/`greskaKolicine` imaju opciju `{ dopustiNulu }`. Dodani su `procitajCijenu()`, `izracunajIsplatu()` i `NAJVISE_CIJENA_KG` (100 €/kg, ista granica je u bazi). U `format.ts` je dodan `formatCijenaUnos()` („7,20”), a u `oznake.ts` `ukupnoKgStvarno()`.
+- 1.10: realizirana narudžba sa `stvarno_ukupno` u kartici i detaljima prikazuje **samo stvarno**: „Izvagano” i „Isplaćeno”, a retke s 0 kg kao „nije bilo”. Detalji pokazuju i što je kupac prijavio. Testna 2026-0008 (realizirana SQL-om, bez stvarnih vrijednosti) i dalje pokazuje procjenu, dok je netko ne ispravi preko „Uredi realizaciju”.
+- 1.10: **uz `cacheComponents` Next.js stranicu pri odlasku ne briše, nego je sakrije (React `<Activity>`) i zapamti joj stanje.** Forma koja nakon spremanja radi `router.push` mora se sama vratiti u početno stanje. Inače je pri povratku i dalje „Spremam…”. Rješenje je `useLayoutEffect` s čišćenjem (cleanup) koje se izvodi samo nakon uspješnog spremanja i `key` na formi složen od podataka iz baze. Vidi `forma-realizacije.tsx` i `node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`. Isto vrijedi za forme u 1.11.
+- 1.10: kartica narudžbe u popisu (Nove, Realizirane, Otkazane, pretraga) **uvijek** prikazuje ime i prezime kupca (Mišelov zahtjev). Gumb Nazovi ostaje samo u „Nove” i pretrazi.
+- 1.10 (**dodatak izvan plana**, Mišel odobrio): kartica u rasporedu (Planer rute i Svi dani) ima gumb „Realiziraj” uz „Promijeni dan”.

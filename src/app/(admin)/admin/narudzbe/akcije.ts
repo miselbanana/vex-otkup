@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { poredajDan } from '@/lib/admin/raspored'
 import { provjeriDan } from '@/lib/admin/termin'
 import { jeDatum, trenutakUZagrebu } from '@/lib/datum'
+import { NAJVISE_CIJENA_KG, NAJVISE_KG, NAJVISE_STAVKI } from '@/lib/izracun'
 import { zahtijevajKorisnika } from '@/lib/supabase/provjera'
 import { Constants } from '@/lib/supabase/tipovi'
 
@@ -49,6 +50,24 @@ const napomenaShema = z.object({
   id: z.uuid(),
   tekst: z.string().max(NAJVISE_ZNAKOVA_INTERNE),
 })
+
+// Najviše 2 decimale (baza sprema numeric(10,2)); mala tolerancija zbog 12,55 × 100.
+const dvijeDecimale = (broj: number) => Math.abs(Math.round(broj * 100) - broj * 100) <= 1e-6
+
+// Stavka realizacije. id = null za stavku koju Vedran dodaje pri vaganju.
+const stavkaRealizacijeShema = z.object({
+  id: z.number().int().positive().nullable(),
+  klasaId: z.number().int().positive(),
+  kg: z.number().min(0).max(NAJVISE_KG).refine(dvijeDecimale),
+  cijenaKg: z.number().min(0).max(NAJVISE_CIJENA_KG).refine(dvijeDecimale),
+})
+
+const realizacijaShema = z.object({
+  id: z.uuid(),
+  stavke: z.array(stavkaRealizacijeShema).min(1).max(NAJVISE_STAVKI),
+})
+
+export type StavkaRealizacije = z.infer<typeof stavkaRealizacijeShema>
 
 // Nova narudžba → potvrđena, s danom, dijelom dana i (neobavezno) točnim vremenom.
 export async function potvrdi(
@@ -230,6 +249,41 @@ export async function pomakni(id: string, smjer: 'gore' | 'dolje'): Promise<Odgo
     ),
   )
   if (rezultati.some((r) => r.error)) {
+    return { greska: GRESKA_SPREMANJA }
+  }
+
+  refresh()
+  return {}
+}
+
+// Potvrđena narudžba → realizirana, sa stvarnim vrijednostima svake stavke (nakon vaganja).
+// Isto služi i za ispravak već realizirane narudžbe. Iznos se ne šalje: računa ga baza
+// (funkcija realiziraj_narudzbu), koja sve sprema u jednoj transakciji.
+export async function realiziraj(
+  id: string,
+  stavke: StavkaRealizacije[],
+): Promise<OdgovorAkcije> {
+  const { supabase } = await zahtijevajKorisnika()
+
+  const provjera = realizacijaShema.safeParse({ id, stavke })
+  if (!provjera.success) return { greska: 'Provjerite klase, kilograme i cijene.' }
+  const unos = provjera.data
+
+  const { error } = await supabase.rpc('realiziraj_narudzbu', {
+    p_id: unos.id,
+    p_stavke: unos.stavke.map((s) => ({
+      id: s.id,
+      klasa_id: s.klasaId,
+      kg: s.kg,
+      cijena_kg: s.cijenaKg,
+    })),
+  })
+  if (error) {
+    if (error.message.includes('NIJE_DOSTUPNA')) return promijenjena()
+    if (error.message.includes('NEISPRAVNI_PODACI')) {
+      return { greska: 'Provjerite stavke: ukupno mora biti više od 0 kg.' }
+    }
+    console.error('Realizacija nije uspjela:', error.message)
     return { greska: GRESKA_SPREMANJA }
   }
 

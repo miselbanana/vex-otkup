@@ -352,6 +352,7 @@ cijenu po kg (zadano je današnja cijena iz cjenika)
 Gumb "Dodaj stavku" služi za materijal koji kupac nije prijavio.
 Iznosi se računaju uživo. Gumb Spremi i označi realiziranom pokreće akciju `realiziraj(id, stavke)`.
 Gumb "Uredi realizaciju" omogućuje ispravak nakon spremanja.
+(Izvedeno u 1.10: stavka dodana pri vaganju ima `kg\_prijavljeno = 0`, a sprema se kroz Postgres funkciju `realiziraj\_narudzbu` u jednoj transakciji. Kartica u rasporedu dobila je i gumb "Realiziraj".)
 Rezultat: Svaka realizirana narudžba ima prijavljene i stvarne vrijednosti za svaku stavku.
 Napomena: Ovaj ekran testiraj s Vedranom na njegovom mobitelu, na terenu. Ako mu je spor, preskakat će ga i analitika postaje bezvrijedna.
 Gumbi moraju biti barem 48 px visoki, a skrolanja treba biti što manje.

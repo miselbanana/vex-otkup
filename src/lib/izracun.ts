@@ -34,26 +34,71 @@ export const NAJVISE_KG = 100_000
 // Najviše redaka (materijala) u jednoj narudžbi.
 export const NAJVISE_STAVKI = 20
 
+// Najviša cijena po kg koju Vedran smije upisati pri realizaciji (ista granica je u bazi).
+export const NAJVISE_CIJENA_KG = 100
+
+// `dopustiNulu` = 0 kg je ispravno (realizacija: prijavljenog materijala nije bilo).
+type OpcijeKolicine = { dopustiNulu?: boolean }
+
+// Ima li broj najviše 2 decimale. Usporedba s malom tolerancijom,
+// jer npr. 12,55 × 100 daje 1255,0000000000002.
+function najviseDvijeDecimale(broj: number): boolean {
+  return Math.abs(Math.round(broj * 100) - broj * 100) <= 1e-6
+}
+
 // Provjerava količinu u kg. Vraća poruku o grešci ili null ako je sve u redu.
 // Baza sprema kg kao numeric(10,2), pa su dopuštene najviše 2 decimale.
-export function greskaKolicine(kg: number): string | null {
+export function greskaKolicine(kg: number, { dopustiNulu = false }: OpcijeKolicine = {}): string | null {
   if (!Number.isFinite(kg)) return 'Upišite broj, npr. 12,5'
-  if (kg <= 0) return 'Količina mora biti veća od 0'
+  if (dopustiNulu ? kg < 0 : kg <= 0) return 'Količina mora biti veća od 0'
   if (kg > NAJVISE_KG) return `Najviše ${NAJVISE_KG.toLocaleString('hr-HR')} kg po retku`
-  // Usporedba s malom tolerancijom, jer npr. 12,55 × 100 daje 1255,0000000000002.
-  if (Math.abs(Math.round(kg * 100) - kg * 100) > 1e-6) return 'Najviše 2 decimale, npr. 12,55'
+  if (!najviseDvijeDecimale(kg)) return 'Najviše 2 decimale, npr. 12,55'
   return null
+}
+
+// Broj koji se još tipka ("12,") nije greška, ali još nema vrijednost.
+function nedovrsenBroj(tekst: string): boolean {
+  return /^\d[\d.,]*[.,]$/.test(tekst.trim())
 }
 
 // Čita količinu dok je kupac upisuje (kalkulator i forma narudžbe).
 // Prazno polje i broj koji se još tipka ("12,") nisu greška, ali nemaju ni vrijednost.
-export function procitajKg(tekst: string): { kg: number | null; greska: string | null } {
-  if (tekst.trim() === '') return { kg: null, greska: null }
-  if (/^\d[\d.,]*[.,]$/.test(tekst.trim())) return { kg: null, greska: null }
+export function procitajKg(
+  tekst: string,
+  opcije: OpcijeKolicine = {},
+): { kg: number | null; greska: string | null } {
+  if (tekst.trim() === '' || nedovrsenBroj(tekst)) return { kg: null, greska: null }
   const kg = parseBroj(tekst)
   if (kg === null) return { kg: null, greska: 'Upišite broj, npr. 12,5' }
-  const greska = greskaKolicine(kg)
+  const greska = greskaKolicine(kg, opcije)
   return greska ? { kg: null, greska } : { kg, greska: null }
+}
+
+// Čita cijenu po kg pri realizaciji (0–100 €, najviše 2 decimale).
+export function procitajCijenu(tekst: string): { cijena: number | null; greska: string | null } {
+  if (tekst.trim() === '' || nedovrsenBroj(tekst)) return { cijena: null, greska: null }
+  const cijena = parseBroj(tekst)
+  if (cijena === null) return { cijena: null, greska: 'Upišite cijenu, npr. 7,20' }
+  if (cijena > NAJVISE_CIJENA_KG) {
+    return { cijena: null, greska: `Najviše ${NAJVISE_CIJENA_KG} € po kg` }
+  }
+  if (!najviseDvijeDecimale(cijena)) return { cijena: null, greska: 'Najviše 2 decimale, npr. 7,25' }
+  return { cijena, greska: null }
+}
+
+// Isplata pri realizaciji: kg × cijena koju je upisao Vedran (ne iz cjenika).
+// Računa u centima kao izracunajProcjenu(), a ukupno zaokružuje tek na kraju.
+export function izracunajIsplatu(stavke: { kg: number; cijenaKg: number }[]): {
+  iznosi: number[]
+  ukupno: number
+} {
+  let ukupnoCenti = 0
+  const iznosi = stavke.map((s) => {
+    const centi = Math.round(s.cijenaKg * 100) * s.kg
+    ukupnoCenti += centi
+    return Math.round(centi) / 100
+  })
+  return { iznosi, ukupno: Math.round(ukupnoCenti) / 100 }
 }
 
 // Računa procjenu. Stavke s nepoznatom klasom ili neispravnom količinom se preskaču.

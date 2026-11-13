@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, MapPin, Navigation, User } from 'lucide-react'
+import { ArrowLeft, MapPin, Navigation, Pencil, Scale, User } from 'lucide-react'
 import { z } from 'zod'
 import { DijalogOtkaza } from '@/components/admin/dijalog-otkaza'
 import { DijalogTermina } from '@/components/admin/dijalog-termina'
@@ -86,7 +86,7 @@ async function Detalji({ params }: { params: PageProps<'/admin/narudzbe/[id]'>['
         </CardContent>
       </Card>
 
-      {/* Radnje ovise o statusu. Realizacija dolazi u koraku 1.10. */}
+      {/* Radnje ovise o statusu. */}
       {n.status === 'nova' && (
         <div className="grid grid-cols-2 gap-2">
           <DijalogTermina
@@ -100,6 +100,24 @@ async function Detalji({ params }: { params: PageProps<'/admin/narudzbe/[id]'>['
           />
           <DijalogOtkaza id={n.id} broj={n.broj} />
         </div>
+      )}
+      {n.status === 'potvrdjena' && (
+        <Link
+          href={`/admin/narudzbe/${n.id}/realizacija`}
+          className={buttonVariants({ className: 'w-full' })}
+        >
+          <Scale />
+          Realiziraj
+        </Link>
+      )}
+      {n.status === 'realizirana' && (
+        <Link
+          href={`/admin/narudzbe/${n.id}/realizacija`}
+          className={buttonVariants({ variant: 'outline', className: 'w-full' })}
+        >
+          <Pencil />
+          Uredi realizaciju
+        </Link>
       )}
       {n.status === 'potvrdjena' && (
         <div className="grid grid-cols-2 gap-2">
@@ -141,6 +159,7 @@ async function Detalji({ params }: { params: PageProps<'/admin/narudzbe/[id]'>['
           <p className="text-sm text-muted-foreground">
             Zaprimljeno {formatTrenutak(n.created_at)}
             {n.potvrdjena_at && ` · potvrđeno ${formatTrenutak(n.potvrdjena_at)}`}
+            {n.realizirana_at && ` · realizirano ${formatTrenutak(n.realizirana_at)}`}
           </p>
         </CardContent>
       </Card>

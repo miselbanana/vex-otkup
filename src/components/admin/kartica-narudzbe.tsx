@@ -14,13 +14,15 @@ import {
   nazivStavke,
   starost,
   ukupnoKg,
+  ukupnoKgStvarno,
 } from '@/lib/admin/oznake'
 import { formatDan, formatTrenutak } from '@/lib/datum'
 import { formatBrojUnos, formatEur, prikaziMobitel } from '@/lib/format'
 import { NAZIVI_DIJELA_DANA } from '@/lib/validacija/narudzba'
 
 // Kartica jedne narudžbe u admin popisu. Zaglavlje vodi na detalje narudžbe.
-// `kupac` = prikaži ime i gumb Nazovi (kartica "Nove" i rezultati pretrage),
+// Ime kupca je uvijek vidljivo (i u "Realizirane" i "Otkazane", dodano u 1.10).
+// `kupac` = prikaži gumb Nazovi (kartica "Nove" i rezultati pretrage),
 // a nova narudžba tada ima i gumbe Potvrdi i Otkaži.
 // `sličice` = potpisani linkovi fotografija (samo kartica "Nove").
 export function KarticaNarudzbe({
@@ -59,7 +61,7 @@ export function KarticaNarudzbe({
               </span>
             </span>
           </p>
-          {kupac && <p>{n.ime_prezime}</p>}
+          <p>{n.ime_prezime}</p>
         </div>
 
         <PopisStavki narudzba={n} />
@@ -164,6 +166,11 @@ export function PopisStavki({
   narudzba: NarudzbaPopisa
   cijene?: boolean
 }) {
+  // Realizirana narudžba sa stvarnim vrijednostima prikazuje samo njih (nikad zbrojeno s procjenom).
+  if (n.status === 'realizirana' && n.stvarno_ukupno !== null) {
+    return <PopisStvarnihStavki narudzba={n} stvarnoUkupno={n.stvarno_ukupno} cijene={cijene} />
+  }
+
   const ukupno = ukupnoKg(n.stavke)
 
   return (
@@ -193,6 +200,69 @@ export function PopisStavki({
         <p className="flex justify-between gap-3">
           <span className="text-muted-foreground">Okvirno za isplatu</span>
           <span className="shrink-0 font-semibold tabular-nums">{formatEur(n.procjena_ukupno)}</span>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// Stvarne (izvagane) vrijednosti realizirane narudžbe i isplaćeni iznos.
+// `cijene` (detalji) = ispod naziva i cijena po kg te što je kupac prijavio.
+function PopisStvarnihStavki({
+  narudzba: n,
+  stvarnoUkupno,
+  cijene,
+}: {
+  narudzba: NarudzbaPopisa
+  stvarnoUkupno: number
+  cijene: boolean
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 text-sm">
+      <ul className="flex flex-col gap-0.5">
+        {n.stavke.map((s) => {
+          const klasa = s.klasa_stvarna ?? s.klasa
+          const kg = s.kg_stvarno ?? 0
+          const prijavljeno =
+            s.kg_prijavljeno > 0
+              ? `prijavljeno ${formatBrojUnos(s.kg_prijavljeno)} kg` +
+                (s.klasa_stvarna_id !== null && s.klasa_stvarna_id !== s.klasa_id
+                  ? ` (${nazivStavke(s.klasa.materijal.naziv, s.klasa.naziv)})`
+                  : '')
+              : 'dodano pri vaganju'
+          return (
+            <li key={s.id} className="flex justify-between gap-3">
+              <span className={cn('flex flex-col', kg === 0 && 'text-muted-foreground')}>
+                {nazivStavke(klasa.materijal.naziv, klasa.naziv)}
+                {cijene && (
+                  <span className="text-muted-foreground tabular-nums">
+                    {kg > 0 && s.cijena_kg_stvarna !== null && (
+                      <>{formatEur(s.cijena_kg_stvarna)}/kg · </>
+                    )}
+                    {prijavljeno}
+                  </span>
+                )}
+              </span>
+              <span
+                className={cn(
+                  'shrink-0 tabular-nums',
+                  kg === 0 ? 'text-muted-foreground' : 'font-medium',
+                )}
+              >
+                {kg === 0 ? 'nije bilo' : `${formatBrojUnos(kg)} kg`}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      <div className="flex flex-col gap-0.5 border-t pt-1.5">
+        <p className="flex justify-between gap-3 font-semibold">
+          <span>Izvagano</span>
+          <span className="shrink-0 tabular-nums">{formatBrojUnos(ukupnoKgStvarno(n.stavke))} kg</span>
+        </p>
+        <p className="flex justify-between gap-3">
+          <span className="text-muted-foreground">Isplaćeno</span>
+          <span className="shrink-0 font-semibold tabular-nums">{formatEur(stvarnoUkupno)}</span>
         </p>
       </div>
     </div>

@@ -457,6 +457,10 @@ export type Database = {
         Returns: string
       }
       oblik_za_pretragu: { Args: { tekst: string }; Returns: string }
+      realiziraj_narudzbu: {
+        Args: { p_id: string; p_stavke: Json }
+        Returns: undefined
+      }
       slobodni_dani: {
         Args: { p_do: string; p_naselje_id: number; p_od: string }
         Returns: string[]

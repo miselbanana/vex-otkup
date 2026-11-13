@@ -41,6 +41,11 @@ export function ukupnoKg(stavke: { kg_prijavljeno: number }[]): number {
   return stavke.reduce((zbroj, s) => zbroj + Math.round(s.kg_prijavljeno * 100), 0) / 100
 }
 
+// Ukupno stvarnih (izvaganih) kilograma realizirane narudžbe, na isti način.
+export function ukupnoKgStvarno(stavke: { kg_stvarno: number | null }[]): number {
+  return stavke.reduce((zbroj, s) => zbroj + Math.round((s.kg_stvarno ?? 0) * 100), 0) / 100
+}
+
 // Koliko je narudžba stara, kratko: "upravo", "prije 5 min", "prije 2 h", "prije 3 d".
 export function starost(trenutak: string, sada: number): string {
   const minute = Math.floor((sada - new Date(trenutak).getTime()) / 60_000)

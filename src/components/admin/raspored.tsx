@@ -1,4 +1,5 @@
-import { Navigation } from 'lucide-react'
+import Link from 'next/link'
+import { Navigation, Scale } from 'lucide-react'
 import { cn } from 'cn'
 import { DijalogTermina } from '@/components/admin/dijalog-termina'
 import { GumbNazovi, PopisStavki, ZaglavljeNarudzbe } from '@/components/admin/kartica-narudzbe'
@@ -254,16 +255,26 @@ function KarticaOdvoza({
           </a>
         </div>
 
-        {/* Narudžba uvijek ima dan, pa se "iz dana miče" premještanjem na drugi dan. */}
-        <DijalogTermina
-          id={n.id}
-          broj={n.broj}
-          nacin="promijeni"
-          datum={n.datum_odvoza}
-          dioDana={n.dio_dana}
-          vrijeme={vrijeme}
-          danas={danas}
-        />
+        <div className="grid grid-cols-2 gap-2">
+          {/* Nakon vaganja na terenu: ravno na upis stvarnih vrijednosti (1.10). */}
+          <Link
+            href={`/admin/narudzbe/${n.id}/realizacija`}
+            className={buttonVariants({ variant: 'outline', className: 'w-full' })}
+          >
+            <Scale />
+            Realiziraj
+          </Link>
+          {/* Narudžba uvijek ima dan, pa se "iz dana miče" premještanjem na drugi dan. */}
+          <DijalogTermina
+            id={n.id}
+            broj={n.broj}
+            nacin="promijeni"
+            datum={n.datum_odvoza}
+            dioDana={n.dio_dana}
+            vrijeme={vrijeme}
+            danas={danas}
+          />
+        </div>
       </CardContent>
     </Card>
   )

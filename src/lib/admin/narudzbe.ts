@@ -20,9 +20,14 @@ const STUPCI = `
   id, broj, status, ime_prezime, mobitel, ulica, lat, lng,
   zeljeni_datum, datum_odvoza, dio_dana, dogovoreni_termin, bodovi, udaljenost_km, redoslijed,
   napomena_kupca, napomena_interna, razlog_otkaza, created_at, potvrdjena_at, realizirana_at,
-  procjena_ukupno,
+  procjena_ukupno, stvarno_ukupno,
   naselje:naselja ( naziv, opcina, zupanija:zupanije ( naziv ) ),
-  stavke ( id, kg_prijavljeno, cijena_kg_prijavljena, klasa:klase!klasa_id ( naziv, materijal:materijali ( naziv ) ) ),
+  stavke (
+    id, klasa_id, kg_prijavljeno, cijena_kg_prijavljena,
+    klasa_stvarna_id, kg_stvarno, cijena_kg_stvarna, iznos_stvarni,
+    klasa:klase!klasa_id ( naziv, materijal:materijali ( naziv ) ),
+    klasa_stvarna:klase!klasa_stvarna_id ( naziv, materijal:materijali ( naziv ) )
+  ),
   fotografije ( id, putanja )
 ` as const
 

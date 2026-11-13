@@ -68,6 +68,11 @@ export function formatBrojUnos(broj: number): string {
   return String(broj).replace('.', ',')
 }
 
+// Cijena za polje unosa: uvijek 2 decimale i zarez (7.2 → "7,20").
+export function formatCijenaUnos(cijena: number): string {
+  return cijena.toFixed(2).replace('.', ',')
+}
+
 // Hrvatski broj mobitela u jedinstvenom obliku za bazu: "+385912345678".
 // Kupac ga smije upisati kako god želi:
 //   "091 234 5678" / "091/234-5678" / "(091) 234-5678"  → +385912345678
