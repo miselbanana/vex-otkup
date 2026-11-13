@@ -212,7 +212,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 0.8 Objava na Vercelu
 
 **Faza 1 — MVP**
-- [ ] 1.1 Javni cjenik i kalkulator
+- [x] 1.1 Javni cjenik i kalkulator
 - [ ] 1.2 Početna stranica
 - [ ] 1.3 Narudžba — okvir i materijali
 - [ ] 1.4 Narudžba — fotografije
@@ -289,4 +289,11 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 0.7: u podnožju nema godine, jer uz `cacheComponents` `new Date()` ruši prerender. Gumb „Postavke kolačića” još ne radi ništa (spaja se u 1.13).
 - 0.8: adresa je **`otkup-rho.vercel.app`**, a ne `otkup.vercel.app`, jer je ime `otkup` bilo zauzeto. Vercel je na Hobby planu do 1.15.
 - 0.8: u Vercelu su zasad samo 3 Supabase varijable. Ostale se dodaju u koraku u kojem zatrebaju, a nakon svake treba Redeploy.
-- 0.8: tajni ključ projekta `otkup-dev` pojavio se u razgovoru s Claudeom i nije zamijenjen (Mišelova odluka). Produkcija (`otkup-prod`, 1.15) dobiva nove ključeve.
+- 0.8: tajni ključ projekta `otkup-dev` pojavio se u razgovoru s Claudeom i nije zamijenjen (Mišelova odluka). Produkcija (`otkup-prod`, 1.15) dobiva nove ključeve.- 1.1: cjenik se čita u `src/lib/cjenik.ts` (`dohvatiCjenik()`) tajnim ključem, jer RLS anonimnima ne dopušta čitanje. Vraća samo javne stupce. Keširan je s `'use cache'`, `cacheLife('hours')` i `cacheTag('cjenik')`, pa je `/cjenik` statična stranica koja se sama osvježi najkasnije za 1 h.
+- 1.1: kalkulator je `src/components/javno/kalkulator.tsx` (malim slovima, kao ostale komponente), a ne `Kalkulator.tsx`. Smješten je na `/cjenik`, ispod kartica.
+- 1.1: link na narudžbu je `/naruci?s=klasaId:kg,klasaId:kg` (npr. `s=3:12.5,7:40`), a gradi ga `stavkeUUrl()` iz `izracun.ts`. Čitanje tog formata radi se u 1.3. Do tada gumb vodi na stranicu koja ne postoji.
+- 1.1: `izracunajProcjenu()` računa u centima i zaokružuje tek na kraju. Najviše 100.000 kg po retku (`NAJVISE_KG`).
+- 1.1: `formatEur()` je napisan ručno (ne `Intl`), da server i preglednik ispišu isto.
+- 1.1: na `/cjenik` zasad ne vodi nijedan link (ni u zaglavlju ni u podnožju). Dodaje se u 1.2.
+- 1.1: `parseBroj()` sam prepoznaje razdjelnik tisuća. Ako u broju ima i točke i zareza, zadnji znak je decimalni (`1.237,59` → 1237,59). Jedan znak s točno 3 znamenke iza je razdjelnik tisuća (`1.500` → 1500), osim kad je ispred nula (`0,500` → 0,5). Kalkulator nakon upisa prepiše broj u jasan oblik (`formatBrojUnos()`, npr. „1500”).
+- 1.1: u `next.config.ts` je dodano `allowedDevOrigins: ['192.168.*.*']` (vrijedi samo za razvoj). Bez toga Next.js blokira skripte kad se lokalni sajt otvori s mobitela u kućnoj mreži.
