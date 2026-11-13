@@ -215,7 +215,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 **Faza 1 — MVP**
 - [x] 1.1 Javni cjenik i kalkulator
 - [x] 1.2 Početna stranica
-- [ ] 1.3 Narudžba — okvir i materijali
+- [x] 1.3 Narudžba — okvir i materijali
 - [ ] 1.4 Narudžba — fotografije
 - [ ] 1.5 Narudžba — lokacija i termin
 - [ ] 1.6 Narudžba — kontakt i slanje
@@ -305,3 +305,13 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - 1.2: **stranice ne smiju postavljati vlastiti `openGraph` u `metadata`.** Next.js ga ne spaja s onim iz korijenskog layouta, nego ga zamijeni u cijelosti, pa nestane slika. Zajednička polja (`type`, `locale`, `siteName`) su u `src/app/layout.tsx`, a naslov i opis za dijeljenje Next.js preuzima iz `title`/`description`.
 - 1.2: `metadataBase` u `layout.tsx` uzima redom `NEXT_PUBLIC_SITE_URL`, zatim `VERCEL_PROJECT_PRODUCTION_URL` (Vercel ga postavlja sam), zatim `localhost:3000`. `NEXT_PUBLIC_SITE_URL` treba dodati u Vercel kad dođe vlastita domena.
 - 1.2: link „Cjenik” dodan je u zaglavlje (samo od širine `sm`, na uskom mobitelu nema mjesta) i u podnožje. Gumb s `buttonVariants` sakriva se klasom `max-sm:hidden`, a ne s `hidden`, jer bi gumbov `inline-flex` pobijedio.
+- 1.3: instalirani su `react-hook-form` 7.92, `zod` 4.6 i `@hookform/resolvers` 7.0 (resolver se uvozi iz `@hookform/resolvers/zod`).
+- 1.3: Zod sheme su u `src/lib/validacija/narudzba.ts`. **Zasad sadrže samo materijale.** Koraci 1.4–1.6 proširuju `narudzbaFormeShema` svojim poljima. `stavkaShema` (brojevi) je za server, a `stavkaFormeShema` (tekst kako ga kupac upisuje) za formu.
+  - Forma ima dva tipa: `NarudzbaForme` (dok se ispunjava, odabir smije biti `null`) i `NarudzbaFormeProvjerena` (nakon provjere). Zato je `useForm<NarudzbaForme, unknown, NarudzbaFormeProvjerena>`.
+- 1.3: `procitajKg()`, `greskaKolicine()`, `NAJVISE_STAVKI` (20) i `stavkeIzUrla()` su u `izracun.ts`, a ne u shemi, da Zod ne ulazi u kod stranice `/cjenik`. **Količina smije imati najviše 2 decimale** (baza je `numeric(10,2)`). To vrijedi i za kalkulator.
+- 1.3: redak materijal → klasa → kg izdvojen je u `src/components/javno/redak-stavke.tsx` i koriste ga kalkulator i korak 1. Kartica „cjenik nedostupan” je `cjenik-nedostupan.tsx` (/cjenik i /naruci).
+- 1.3: datoteke su `narudzba/koraci.tsx` i `narudzba/korak-materijali.tsx` (malim slovima), a ne `Koraci.tsx` i `KorakMaterijali.tsx`. Koraci 2–4 su zasad prazni („Ovaj korak uskoro dolazi”). Na zadnjem koraku nema gumba Dalje, jer slanje dolazi u 1.6.
+- 1.3: „Dalje” provjerava samo polja trenutnog koraka (`trigger`), a potpuno prazne retke tiho uklanja ako postoji i popunjeni redak. Enter na tipkovnici = Dalje.
+- 1.3: `/naruci` čita `searchParams` u komponenti unutar `<Suspense>` (pravilo uz `cacheComponents`). Naslov je statičan, a forma se dočita.
+- 1.3: `SpremiIzvor` (`spremi-izvor.tsx`, u javnom layoutu) sprema `utm_source/medium/campaign/content/term` i `fbclid` u sessionStorage pod ključem `izvor` (`KLJUC_IZVORA`), samo pri prvom dolasku u posjetu. Baza zasad ima stupce samo za `utm_source`, `utm_campaign` i `fbclid`.
+- 1.3: ako se paketi instaliraju dok radi `npm run dev`, Turbopack se može zbuniti („… is not a function”). Rješenje: ugasi i ponovno pokreni `npm run dev`.

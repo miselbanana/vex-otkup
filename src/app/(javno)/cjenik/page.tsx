@@ -1,11 +1,9 @@
 import type { Metadata } from 'next'
-import { Phone } from 'lucide-react'
+import { CjenikNedostupan } from '@/components/javno/cjenik-nedostupan'
 import { Kalkulator } from '@/components/javno/kalkulator'
-import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { dohvatiCjenik } from '@/lib/cjenik'
 import { formatEur } from '@/lib/format'
-import { TELEFON_LINK, TELEFON_PRIKAZ } from '@/lib/kontakt'
 
 export const metadata: Metadata = {
   title: 'Cjenik',
@@ -27,15 +25,7 @@ export default async function CjenikStranica() {
       </div>
 
       {materijali.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-start gap-3">
-            <p>Cjenik trenutno nije dostupan. Nazovite nas i rado ćemo vam reći cijene.</p>
-            <a href={TELEFON_LINK} className={buttonVariants()}>
-              <Phone />
-              <span className="tabular-nums">{TELEFON_PRIKAZ}</span>
-            </a>
-          </CardContent>
-        </Card>
+        <CjenikNedostupan />
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2">
