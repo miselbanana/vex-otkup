@@ -1,8 +1,10 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import type { KandidatZaDan } from '@/components/admin/dijalog-dodaj-u-dan'
 import { KarticaNarudzbe } from '@/components/admin/kartica-narudzbe'
 import { KarticeNarudzbi } from '@/components/admin/kartice-narudzbi'
+import { PlanerRute, PrekidacPogleda } from '@/components/admin/planer-rute'
 import { PopisUzivo } from '@/components/admin/popis-uzivo'
 import { PretragaNarudzbi } from '@/components/admin/pretraga-narudzbi'
 import { Raspored } from '@/components/admin/raspored'
@@ -15,11 +17,15 @@ import {
   dohvatiNarudzbe,
   linkoviFotografija,
   procitajBroj,
+  zatvorenDan,
   zauzetostDana,
   type Kartica,
+  type NarudzbaPopisa,
 } from '@/lib/admin/narudzbe'
-import { grupirajPoDanu } from '@/lib/admin/raspored'
-import { danasUZagrebu } from '@/lib/datum'
+import { ukupnoKg } from '@/lib/admin/oznake'
+import { grupirajPoDanu, poredajDan } from '@/lib/admin/raspored'
+import { nazivBlagdana } from '@/lib/blagdani'
+import { danUTjednu, danasUZagrebu, jeDatum } from '@/lib/datum'
 import { zahtijevajKorisnika } from '@/lib/supabase/provjera'
 
 export const metadata: Metadata = { title: 'Narudžbe' }
@@ -68,23 +74,45 @@ async function Popis({ searchParams }: { searchParams: SearchParams }) {
   const danas = danasUZagrebu()
 
   let sadrzaj: React.ReactNode
-  if (narudzbe.length === 0) {
-    sadrzaj = <PrazanPopis kartica={kartica} upit={upit} />
-  } else if (!upit && kartica === 'raspored') {
-    const { dolazeci, prosli } = grupirajPoDanu(narudzbe, danas)
-    const { bodovi, kapacitet } = await zauzetostDana(supabase, [
-      ...new Set(narudzbe.map((n) => n.datum_odvoza)),
-    ])
+  if (!upit && kartica === 'raspored') {
+    // Raspored ima dva pogleda: planer jednog dana (zadano) i svi dani (1.8).
+    const pogled = tekst(parametri.pogled) === 'svi' ? 'svi' : 'planer'
+    let raspored: React.ReactNode
+    if (pogled === 'planer') {
+      const trazeniDan = tekst(parametri.dan)
+      raspored = await planerDana({
+        supabase,
+        narudzbe,
+        datum: jeDatum(trazeniDan) ? trazeniDan : danas,
+        danas,
+        sada,
+      })
+    } else if (narudzbe.length === 0) {
+      raspored = <PrazanPopis kartica={kartica} upit={upit} />
+    } else {
+      const { dolazeci, prosli } = grupirajPoDanu(narudzbe, danas)
+      const { bodovi, kapacitet } = await zauzetostDana(supabase, [
+        ...new Set(narudzbe.map((n) => n.datum_odvoza)),
+      ])
+      raspored = (
+        <Raspored
+          dolazeci={dolazeci}
+          prosli={prosli}
+          bodovi={bodovi}
+          kapacitet={kapacitet}
+          danas={danas}
+          sada={sada}
+        />
+      )
+    }
     sadrzaj = (
-      <Raspored
-        dolazeci={dolazeci}
-        prosli={prosli}
-        bodovi={bodovi}
-        kapacitet={kapacitet}
-        danas={danas}
-        sada={sada}
-      />
+      <div className="flex flex-col gap-4">
+        <PrekidacPogleda pogled={pogled} />
+        {raspored}
+      </div>
     )
+  } else if (narudzbe.length === 0) {
+    sadrzaj = <PrazanPopis kartica={kartica} upit={upit} />
   } else {
     // Sličice samo u kartici "Nove" (Vedran ih gleda prije poziva).
     const nove = !upit && kartica === 'nove'
@@ -98,7 +126,13 @@ async function Popis({ searchParams }: { searchParams: SearchParams }) {
       <ul className="flex flex-col gap-3">
         {narudzbe.map((n) => (
           <li key={n.id}>
-            <KarticaNarudzbe narudzba={n} sada={sada} kupac={nove || !!upit} slicice={slicice} />
+            <KarticaNarudzbe
+              narudzba={n}
+              sada={sada}
+              danas={danas}
+              kupac={nove || !!upit}
+              slicice={slicice}
+            />
           </li>
         ))}
       </ul>
@@ -136,6 +170,63 @@ async function Popis({ searchParams }: { searchParams: SearchParams }) {
         </Link>
       )}
     </div>
+  )
+}
+
+// Planer rute za jedan dan. `narudzbe` su sve potvrđene (kartica "Raspored"):
+// one s tim danom čine rutu, a ostale se mogu dodati u dan.
+async function planerDana({
+  supabase,
+  narudzbe,
+  datum,
+  danas,
+  sada,
+}: {
+  supabase: Awaited<ReturnType<typeof zahtijevajKorisnika>>['supabase']
+  narudzbe: NarudzbaPopisa[]
+  datum: string
+  danas: string
+  sada: number
+}) {
+  const [{ bodovi, nove, kapacitet }, zatvoren] = await Promise.all([
+    zauzetostDana(supabase, [datum]),
+    zatvorenDan(supabase, datum),
+  ])
+
+  // Upozorenje ako se na taj dan inače ne radi.
+  const blagdan = nazivBlagdana(datum)
+  const oznakaDana =
+    [
+      danUTjednu(datum) === 7 && 'Nedjelja: inače se ne radi.',
+      blagdan && `Blagdan (${blagdan}).`,
+      zatvoren && `Zatvoren dan${zatvoren.razlog ? ` (${zatvoren.razlog})` : ''}.`,
+    ]
+      .filter(Boolean)
+      .join(' ') || null
+
+  const kandidati: KandidatZaDan[] = narudzbe
+    .filter((n) => n.datum_odvoza !== datum)
+    .map((n) => ({
+      id: n.id,
+      broj: n.broj,
+      ime: n.ime_prezime,
+      naselje: n.naselje.naziv,
+      datum: n.datum_odvoza,
+      kg: ukupnoKg(n.stavke),
+    }))
+
+  return (
+    <PlanerRute
+      datum={datum}
+      danas={danas}
+      sada={sada}
+      narudzbe={poredajDan(narudzbe.filter((n) => n.datum_odvoza === datum))}
+      kandidati={kandidati}
+      bodovi={bodovi.get(datum) ?? 0}
+      novih={nove.get(datum) ?? 0}
+      kapacitet={kapacitet}
+      oznakaDana={oznakaDana}
+    />
   )
 }
 

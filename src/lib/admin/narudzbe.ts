@@ -18,10 +18,11 @@ const NAJVISE_NARUDZBI = 1000
 // Stavka ima dvije veze na klase (prijavljena i stvarna), pa se veza imenuje stupcem.
 const STUPCI = `
   id, broj, status, ime_prezime, mobitel, ulica, lat, lng,
-  zeljeni_datum, datum_odvoza, dio_dana, bodovi, udaljenost_km, redoslijed,
-  napomena_kupca, napomena_interna, razlog_otkaza, created_at, realizirana_at, procjena_ukupno,
+  zeljeni_datum, datum_odvoza, dio_dana, dogovoreni_termin, bodovi, udaljenost_km, redoslijed,
+  napomena_kupca, napomena_interna, razlog_otkaza, created_at, potvrdjena_at, realizirana_at,
+  procjena_ukupno,
   naselje:naselja ( naziv, opcina, zupanija:zupanije ( naziv ) ),
-  stavke ( id, kg_prijavljeno, klasa:klase!klasa_id ( naziv, materijal:materijali ( naziv ) ) ),
+  stavke ( id, kg_prijavljeno, cijena_kg_prijavljena, klasa:klase!klasa_id ( naziv, materijal:materijali ( naziv ) ) ),
   fotografije ( id, putanja )
 ` as const
 
@@ -87,6 +88,20 @@ export async function dohvatiNarudzbe(
   return { narudzbe: data.slice(0, broj), imaJos: data.length > broj }
 }
 
+// Jedna narudžba za stranicu detalja (1.9), ili null ako ne postoji.
+export async function dohvatiNarudzbu(
+  supabase: Klijent,
+  id: string,
+): Promise<NarudzbaPopisa | null> {
+  const { data, error } = await upitNarudzbi(supabase)
+    .eq('id', id)
+    .order('id', { referencedTable: 'stavke', ascending: true })
+    .order('id', { referencedTable: 'fotografije', ascending: true })
+    .maybeSingle()
+  if (error) throw new Error(`Dohvat narudžbe nije uspio: ${error.message}`)
+  return data
+}
+
 // Broj narudžbi koje čekaju potvrdu (brojač na kartici "Nove").
 export async function brojNovih(supabase: Klijent): Promise<number> {
   const { count, error } = await supabase
@@ -99,16 +114,17 @@ export async function brojNovih(supabase: Klijent): Promise<number> {
 
 // Zauzeti bodovi po danu i kapacitet dana (za "3/4" u rasporedu).
 // Dan zauzimaju nove i potvrđene narudžbe, isto kao u kalendaru (1.5).
+// `nove` = koliko nepotvrđenih narudžbi zauzima dan (planer to napiše uz bodove).
 export async function zauzetostDana(
   supabase: Klijent,
   dani: string[],
-): Promise<{ bodovi: Map<string, number>; kapacitet: number | null }> {
-  if (dani.length === 0) return { bodovi: new Map(), kapacitet: null }
+): Promise<{ bodovi: Map<string, number>; nove: Map<string, number>; kapacitet: number | null }> {
+  if (dani.length === 0) return { bodovi: new Map(), nove: new Map(), kapacitet: null }
 
   const [narudzbe, postavke] = await Promise.all([
     supabase
       .from('narudzbe')
-      .select('datum_odvoza, bodovi')
+      .select('datum_odvoza, bodovi, status')
       .in('status', ['nova', 'potvrdjena'])
       .in('datum_odvoza', dani),
     supabase.from('postavke_kalendara').select('kapacitet_dana').maybeSingle(),
@@ -117,10 +133,26 @@ export async function zauzetostDana(
   if (postavke.error) throw new Error(`Dohvat postavki nije uspio: ${postavke.error.message}`)
 
   const bodovi = new Map<string, number>()
+  const nove = new Map<string, number>()
   for (const n of narudzbe.data) {
     bodovi.set(n.datum_odvoza, (bodovi.get(n.datum_odvoza) ?? 0) + n.bodovi)
+    if (n.status === 'nova') nove.set(n.datum_odvoza, (nove.get(n.datum_odvoza) ?? 0) + 1)
   }
-  return { bodovi, kapacitet: postavke.data?.kapacitet_dana ?? null }
+  return { bodovi, nove, kapacitet: postavke.data?.kapacitet_dana ?? null }
+}
+
+// Je li dan ručno zatvoren (godišnji, kvar kamiona…). Vraća razlog ili null ako nije.
+export async function zatvorenDan(
+  supabase: Klijent,
+  datum: string,
+): Promise<{ razlog: string | null } | null> {
+  const { data, error } = await supabase
+    .from('zatvoreni_dani')
+    .select('razlog')
+    .eq('datum', datum)
+    .maybeSingle()
+  if (error) throw new Error(`Dohvat zatvorenih dana nije uspio: ${error.message}`)
+  return data
 }
 
 // Potpisani linkovi (1 sat) za sličice fotografija, kao mapa putanja → link.

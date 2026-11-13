@@ -39,6 +39,19 @@ export function danUTjednu(datum: string): number {
   return dan === 0 ? 7 : dan
 }
 
+// Trenutak (timestamptz) iz dana i sata po hrvatskom vremenu ("2026-11-17", "09:30").
+// Vraća ISO zapis s pomakom zone, pa baza točno zna koji je to trenutak.
+export function trenutakUZagrebu(datum: string, vrijeme: string): string {
+  const [godina, mjesec, dan] = datum.split('-').map(Number)
+  const [sat, minuta] = vrijeme.split(':').map(Number)
+  return new TZDate(godina, mjesec - 1, dan, sat, minuta, ZONA).toISOString()
+}
+
+// Ispis trenutka (timestamptz) po hrvatskom vremenu, npr. "09:30" ili "13. 11. 2026. u 14:05".
+export function formatTrenutak(trenutak: string, uzorak = "d. M. yyyy. 'u' HH:mm"): string {
+  return format(new TZDate(trenutak, ZONA), uzorak, { locale: hr })
+}
+
 // Ispis dana na hrvatskom, npr. "utorak, 17. studenoga".
 // parseISO čita dan kao ponoć po satu uređaja, pa ispis uvijek pokaže upravo taj dan.
 export function formatDan(datum: string, uzorak = 'EEEE, d. MMMM'): string {

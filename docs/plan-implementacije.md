@@ -323,7 +323,7 @@ U `src/app/(admin)/admin/narudzbe/akcije.ts` napravi tri akcije:
 `potvrdi(id, datum, dioDana, vrijeme?)`: dijalog je unaprijed popunjen danom koji je kupac odabrao. Vedran ga može promijeniti ako su se na telefonu drukčije dogovorili. Novi dan se provjerava prema kapacitetu (kao u 1.5), a Vedran svjesno može i prekoračiti kapacitet, uz upozorenje. Sprema `datum\_odvoza`, `dio\_dana` i, ako je upisano točno vrijeme, `dogovoreni\_termin`.
 `otkazi(id, razlog)`
 `spremiNapomenu(id, tekst)`
-`promijeniDan(id, datum)` za već potvrđenu narudžbu (dogovoreno u 1.8: Raspored je planer prikupa, pa se narudžba u dan dodaje potvrdom, a premješta ovom akcijom). Ista provjera kapaciteta kao kod potvrde, a `redoslijed` se poništava (`null`), pa narudžba u novom danu dobiva automatsko mjesto.
+`promijeniDan(id, datum)` za već potvrđenu narudžbu (dogovoreno u 1.8: Raspored je planer prikupa, pa se narudžba u dan dodaje potvrdom, a premješta ovom akcijom). Ista provjera kapaciteta kao kod potvrde, a `redoslijed` se poništava (`null`), pa narudžba u novom danu dobiva automatsko mjesto. (Izvedeno u 1.9 kao `promijeniDan(id, { datum, dioDana?, vrijeme? })`: isti dijalog mijenja i dio dana i vrijeme, a bez vremena se `dogovoreni_termin` briše.)
 Razlog otkaza bira se iz izbornika:
 lažna narudžba
 kupac odustao
@@ -333,7 +333,7 @@ izvan područja
 ostalo
 Gumbi Potvrdi i Otkaži (s istim dijalozima) dodaju se i na karticu u "Nove" (1.8 ima samo Nazovi).
 Planer rute (dogovoreno s Mišelom u 1.8, "ruta = jedan dan"):
-tab "Raspored" dobiva dva pogleda: "Planer rute" i "Svi dani" (ovo što je napravljeno u 1.8)
+tab "Raspored" dobiva dva pogleda: "Planer rute" (zadani, odluka iz 1.9) i "Svi dani" (ovo što je napravljeno u 1.8)
 Planer rute prikazuje jedan dan (zadano danas, strelice ◀ ▶ i odabir dana): sažetak dana (kupci, bodovi "3/4", ukupno kg, okvirna gotovina), narudžbe tog dana s redoslijedom (strelice iz 1.8) i ukupnim po narudžbi
 gumb "Dodaj narudžbu u ovaj dan" otvara popis ostalih potvrđenih narudžbi (s njihovim danom) i premješta odabranu u taj dan preko `promijeniDan` (provjera kapaciteta, uz upozorenje može i preko)
 gumb "Makni iz dana" otvara isti dijalog promjene dana (narudžba uvijek ima dan; nova se prvo potvrdi)

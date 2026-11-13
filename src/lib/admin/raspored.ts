@@ -29,6 +29,13 @@ export function poredajDan<T extends ZaRedoslijed>(narudzbe: T[]): T[] {
 
 export type DanRasporeda<T> = { datum: string; narudzbe: T[] }
 
+// Link na planer rute za zadani dan (za danas bez ?dan=, da link ostane kratak).
+export function linkPlanera(datum: string, danas: string): string {
+  return datum === danas
+    ? '/admin/narudzbe?kartica=raspored'
+    : `/admin/narudzbe?kartica=raspored&dan=${datum}`
+}
+
 // Grupira narudžbe po datum_odvoza i svaki dan poreda s poredajDan().
 // Danas i budući dani idu redom (danas na vrhu), a prošli dani (potvrđeno,
 // a još nije realizirano) idu u zasebni popis, da ne nestanu iz vida.

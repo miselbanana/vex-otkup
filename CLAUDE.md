@@ -222,7 +222,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.6 Narudžba — kontakt i slanje
 - [ ] 1.7 Email obavijest Vedranu
 - [x] 1.8 Admin — popis narudžbi
-- [ ] 1.9 Admin — detalji narudžbe i statusi
+- [x] 1.9 Admin — detalji narudžbe i statusi
 - [ ] 1.10 Admin — realizacija narudžbe
 - [ ] 1.11 Admin — uređivanje cjenika
 - [ ] 1.12 Instalacija admina na mobitel
@@ -387,3 +387,18 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Na kartici u „Nove” je zasad samo **Nazovi**. Kartica još ne vodi na detalje. Potvrdi, Otkaži, Promijeni dan i **Planer rute** („ruta = jedan dan”, dodavanje narudžbe u dan) dogovoreni su za 1.9 i upisani u plan.
 - 1.8: u razvojnoj bazi je 9 testnih narudžbi (2026-0001 … 0009) s testnim fotografijama, poslanih kroz javni API. Statusi su postavljeni SQL-om. Ostaju za testiranje 1.9 i 1.10.
 - 1.8: s mobitela u kućnoj mreži admin radi na `http://<IP računala>:3000/admin/narudzbe` (IP je bio `192.168.1.101`, može se promijeniti).
+- 1.9: **bez migracije i bez novih paketa** (svi stupci su postojali od 0.4/1.5).
+- 1.9: akcije u `narudzbe/akcije.ts`: `potvrdi`, `promijeniDan`, `otkazi`, `spremiNapomenu` (uz `pomakni` iz 1.8).
+  - Svaka radi **uvjetni update** (`.eq('status', …)` + `.select('id')`). Ako je narudžbu u međuvremenu netko promijenio, ne sprema ništa i javlja „u međuvremenu promijenjena”.
+  - Odgovor je `{ greska?, upozorenja? }`. Provjera dana je u `src/lib/admin/termin.ts` (`provjeriDan`): dan u prošlosti je greška; nedjelja, blagdan, zatvoren dan i pun dan (bodovi ostalih novih i potvrđenih + ova > kapacitet) samo **upozorenje**. Dijalog tada nudi „Ipak spremi” (`prekoraci = true`).
+  - **Odstupanje od potpisa u planu:** `promijeniDan(id, { datum, dioDana?, vrijeme? }, prekoraci)`. Isti dijalog mijenja i dio dana i vrijeme. Bez vremena se `dogovoreni_termin` briše. Nov dan → `redoslijed = null`. Ako dan ostaje isti, kapacitet se ne provjerava.
+  - Otkaz također postavlja `redoslijed = null`. Vraćanje otkazane narudžbe ne postoji.
+- 1.9: `dogovoreni_termin` gradi `trenutakUZagrebu(datum, 'HH:MM')`, a ispisuje `formatTrenutak()` (oboje u `datum.ts`). Provjereno za zimsko i ljetno vrijeme.
+- 1.9: detalji su `/admin/narudzbe/[id]` (statičan okvir + `<Suspense>`, neispravan id → 404). Dohvat je `dohvatiNarudzbu()`. `STUPCI` sada imaju i `dogovoreni_termin`, `potvrdjena_at` i `cijena_kg_prijavljena`.
+  - „Natrag” vodi na popis u kojem narudžba jest (nova → Nove, potvrđena → planer njezina dana…).
+  - Fotografije: `galerija-fotografija.tsx`, dijalog preko cijelog zaslona (strelice, povlačenje prstom, tipke ← →).
+- 1.9: zaglavlje svake kartice (`ZaglavljeNarudzbe`) je link na detalje. U „Nove” (i u pretrazi za nove) kartica ima Potvrdi i Otkaži. Kartica u rasporedu ima „Promijeni dan” (to je planovo „Makni iz dana”).
+  - Dijalozi: `dijalog-termina.tsx` (potvrdi / promijeni; dan je `<input type="date">` mobitela, Mišelova odluka), `dijalog-otkaza.tsx`, `dijalog-dodaj-u-dan.tsx`, `interna-napomena.tsx`. Male forme koriste `useState` + Zod na serveru, bez React Hook Forma.
+- 1.9: Raspored ima dva pogleda (`planer-rute.tsx`): **Planer rute je zadan** (Mišelova odluka), „Svi dani” je `&pogled=svi`. Dan planera je u linku `&dan=GGGG-MM-DD` (danas bez njega, `linkPlanera()` u `lib/admin/raspored.ts`). U prošli dan se ne može dodavati.
+  - Planer pokaže i koliko novih (nepotvrđenih) narudžbi zauzima dan (`zauzetostDana` vraća i `nove`) te upozori za nedjelju, blagdan ili zatvoren dan (`zatvorenDan()`).
+- 1.9: dodano `ukupnoKg()` u `oznake.ts`.

@@ -1,5 +1,6 @@
 import { Navigation } from 'lucide-react'
 import { cn } from 'cn'
+import { DijalogTermina } from '@/components/admin/dijalog-termina'
 import { GumbNazovi, PopisStavki, ZaglavljeNarudzbe } from '@/components/admin/kartica-narudzbe'
 import { StreliceRedoslijeda } from '@/components/admin/strelice-redoslijeda'
 import { buttonVariants } from '@/components/ui/button'
@@ -7,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import type { NarudzbaPopisa } from '@/lib/admin/narudzbe'
 import { linkNavigacije } from '@/lib/admin/oznake'
 import type { DanRasporeda } from '@/lib/admin/raspored'
-import { dodajDane, formatDan } from '@/lib/datum'
+import { dodajDane, formatDan, formatTrenutak } from '@/lib/datum'
 import { formatBrojUnos, formatEur } from '@/lib/format'
 import { NAZIVI_DIJELA_DANA } from '@/lib/validacija/narudzba'
 
@@ -73,53 +74,75 @@ function DanOdvoza({
   danas: string
   sada: number
 }) {
-  const prefiks =
-    dan.datum === danas ? 'Danas, ' : dan.datum === dodajDane(danas, 1) ? 'Sutra, ' : ''
-  const pun = kapacitet !== null && bodovi >= kapacitet
-
   return (
     <section className="flex flex-col gap-3" aria-label={formatDan(dan.datum)}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-xl first-letter:uppercase">
-          {prefiks}
-          {formatDan(dan.datum, 'EEEE, d. M.')}
-        </h2>
-        {kapacitet !== null && (
-          <span
-            className={cn(
-              'shrink-0 text-sm font-medium tabular-nums',
-              pun ? 'text-dan-popunjeno-tekst' : 'text-muted-foreground',
-            )}
-            title="Zauzeti bodovi (nove i potvrđene narudžbe) / kapacitet dana"
-          >
-            {bodovi}/{kapacitet} boda
-          </span>
-        )}
+        <h2 className="text-xl first-letter:uppercase">{naslovDana(dan.datum, danas)}</h2>
+        <OznakaBodova bodovi={bodovi} kapacitet={kapacitet} />
       </div>
 
       <SazetakDana narudzbe={dan.narudzbe} />
 
-      <ol className="flex flex-col gap-3">
-        {dan.narudzbe.map((n, i) => (
-          <li key={n.id}>
-            <KarticaOdvoza
-              narudzba={n}
-              redniBroj={i + 1}
-              prva={i === 0}
-              zadnja={i === dan.narudzbe.length - 1}
-              sada={sada}
-            />
-          </li>
-        ))}
-      </ol>
+      <ListaOdvoza narudzbe={dan.narudzbe} danas={danas} sada={sada} />
     </section>
+  )
+}
+
+// "Danas, utorak, 17. 11.", "Sutra, …" ili samo "četvrtak, 19. 11."
+export function naslovDana(datum: string, danas: string): string {
+  const prefiks = datum === danas ? 'Danas, ' : datum === dodajDane(danas, 1) ? 'Sutra, ' : ''
+  return `${prefiks}${formatDan(datum, 'EEEE, d. M.')}`
+}
+
+// Zauzeti bodovi dana, npr. "3/4 boda" (crveno kad je dan pun).
+export function OznakaBodova({ bodovi, kapacitet }: { bodovi: number; kapacitet: number | null }) {
+  if (kapacitet === null) return null
+  const pun = bodovi >= kapacitet
+  return (
+    <span
+      className={cn(
+        'shrink-0 text-sm font-medium tabular-nums',
+        pun ? 'text-dan-popunjeno-tekst' : 'text-muted-foreground',
+      )}
+      title="Zauzeti bodovi (nove i potvrđene narudžbe) / kapacitet dana"
+    >
+      {bodovi}/{kapacitet} boda
+    </span>
+  )
+}
+
+// Narudžbe jednog dana redom obilaska, sa strelicama za promjenu redoslijeda.
+export function ListaOdvoza({
+  narudzbe,
+  danas,
+  sada,
+}: {
+  narudzbe: NarudzbaPopisa[]
+  danas: string
+  sada: number
+}) {
+  return (
+    <ol className="flex flex-col gap-3">
+      {narudzbe.map((n, i) => (
+        <li key={n.id}>
+          <KarticaOdvoza
+            narudzba={n}
+            redniBroj={i + 1}
+            prva={i === 0}
+            zadnja={i === narudzbe.length - 1}
+            danas={danas}
+            sada={sada}
+          />
+        </li>
+      ))}
+    </ol>
   )
 }
 
 // Zbroj za cijeli dan: koliko kila i koliko gotovine (okvirno) Vedran treba ponijeti.
 // Zbrajaju se samo procjene (ove narudžbe još nisu izvagane), u centima i stotinkama kg,
 // da u ispisu ne ostanu greške zaokruživanja.
-function SazetakDana({ narudzbe }: { narudzbe: NarudzbaPopisa[] }) {
+export function SazetakDana({ narudzbe }: { narudzbe: NarudzbaPopisa[] }) {
   let stotinkeKg = 0
   let centi = 0
   for (const n of narudzbe) {
@@ -159,14 +182,18 @@ function KarticaOdvoza({
   redniBroj,
   prva,
   zadnja,
+  danas,
   sada,
 }: {
   narudzba: NarudzbaPopisa
   redniBroj: number
   prva: boolean
   zadnja: boolean
+  danas: string
   sada: number
 }) {
+  const vrijeme = n.dogovoreni_termin ? formatTrenutak(n.dogovoreni_termin, 'HH:mm') : ''
+
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
@@ -183,7 +210,9 @@ function KarticaOdvoza({
                 {n.naselje.naziv}, {n.ulica}
               </p>
               <p className="text-sm text-muted-foreground">
-                {NAZIVI_DIJELA_DANA[n.dio_dana]} · {n.udaljenost_km.toLocaleString('hr-HR')} km
+                {NAZIVI_DIJELA_DANA[n.dio_dana]}
+                {vrijeme && <span className="font-semibold text-foreground"> · u {vrijeme}</span>} ·{' '}
+                {n.udaljenost_km.toLocaleString('hr-HR')} km
               </p>
             </div>
 
@@ -224,6 +253,17 @@ function KarticaOdvoza({
             Navigiraj
           </a>
         </div>
+
+        {/* Narudžba uvijek ima dan, pa se "iz dana miče" premještanjem na drugi dan. */}
+        <DijalogTermina
+          id={n.id}
+          broj={n.broj}
+          nacin="promijeni"
+          datum={n.datum_odvoza}
+          dioDana={n.dio_dana}
+          vrijeme={vrijeme}
+          danas={danas}
+        />
       </CardContent>
     </Card>
   )

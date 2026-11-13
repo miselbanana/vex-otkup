@@ -35,6 +35,12 @@ export function nazivStavke(materijal: string, klasa: string): string {
   return klasa.toLowerCase().startsWith(materijal.toLowerCase()) ? klasa : `${materijal} – ${klasa}`
 }
 
+// Ukupno prijavljenih kilograma narudžbe. Zbraja u stotinkama kg,
+// da ne ostane "170.00000000000003".
+export function ukupnoKg(stavke: { kg_prijavljeno: number }[]): number {
+  return stavke.reduce((zbroj, s) => zbroj + Math.round(s.kg_prijavljeno * 100), 0) / 100
+}
+
 // Koliko je narudžba stara, kratko: "upravo", "prije 5 min", "prije 2 h", "prije 3 d".
 export function starost(trenutak: string, sada: number): string {
   const minute = Math.floor((sada - new Date(trenutak).getTime()) / 60_000)
