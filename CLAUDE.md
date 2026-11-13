@@ -67,6 +67,7 @@ npx supabase gen types typescript --remote > src/lib/supabase/tipovi.ts   # pokr
 npx supabase db query --remote --file supabase/seed.sql --yes            # upiši početne podatke (županije, cjenik)
 node scripts/uvoz-naselja.mts                                             # ponovno generiraj supabase/naselja.sql iz OSM-a
 npx supabase db query --remote --file supabase/naselja.sql --yes         # upiši naselja (nakon seed.sql)
+npx supabase db query --remote --file supabase/postavke.sql --yes        # postavke kalendara (nakon naselja.sql)
 npx supabase db advisors --remote                                         # sigurnosna provjera baze
 ```
 
@@ -217,7 +218,7 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.2 Početna stranica
 - [x] 1.3 Narudžba — okvir i materijali
 - [x] 1.4 Narudžba — fotografije
-- [ ] 1.5 Narudžba — lokacija i termin
+- [x] 1.5 Narudžba — lokacija i termin
 - [ ] 1.6 Narudžba — kontakt i slanje
 - [ ] 1.7 Email obavijest Vedranu
 - [ ] 1.8 Admin — popis narudžbi
@@ -326,3 +327,21 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - Brisanje poslane fotografije ne traži ponovno slanje, pa putanje mogu imati rupe (npr. 1 i 3).
   - Stare datoteke ostaju u Storageu bez narudžbe. Briše ih 2.8.
 - 1.4: `POST /api/narudzbe/upload` je javan i zasad bez Turnstilea (dolazi u 1.6). Prima `{ broj: 1–5 }` i vraća `{ id, linkovi: [{ putanja, token }] }`. Token vrijedi 2 sata i može se iskoristiti samo jednom.
+- 1.5: dvije migracije: `kalendar` i `pretraga_dj`.
+  - Pretraga (`trazi_naselja`) uspoređuje oblik bez kvačica, malim slovima, a „dj” svodi na „d” (`oblik_za_pretragu`). Zato „djurdjevac” i „durdevac” nađu Đurđevac.
+  - Pogađa naziv koji počinje upitom ili riječ u nazivu („reka” → „Donja Reka”). Pokrivene županije su prve.
+- 1.5: `postavke_kalendara` ima uvijek jedan redak (`id = true`), s bodovima `bodovi_1`, `bodovi_2` i `bodovi_dalje`.
+  - Početni redak upisuje `supabase/postavke.sql`, koji se pokreće **nakon** `naselja.sql`. U migraciji ili `seed.sql` ne može biti, jer tada još nema Reke. Reka se traži po matičnom broju 54763.
+- 1.5: funkcije `bodovi_narudzbe(naselje)` (zračna udaljenost i bodovi, trebat će u 1.6) i `slobodni_dani(naselje, od, do)` (izbacuje nedjelje, zatvorene i pune dane).
+  - **Blagdane izbacuje ruta `/api/kalendar`** preko `src/lib/blagdani.ts`, a ne baza. Spremanje u 1.6 mora provjeriti i blagdan.
+  - Anonimni ne smiju pozivati te funkcije (provjereno). Zato i `db query --read-only` za njih javlja „permission denied”, pa se testiraju s `--yes`.
+- 1.5: narudžbe imaju nove stupce `datum_odvoza`, `udaljenost_km` i `bodovi` (svi `not null`) te `redoslijed`. **Provjera kapaciteta pri spremanju je posao 1.6** (`kreiraj_narudzbu`), uz zaključavanje dana, da dvije istodobne narudžbe ne prepune dan.
+- 1.5: instalirani su `date-fns` 4.4 i `@date-fns/tz` 1.5. Pomoćne funkcije za dane (`'GGGG-MM-DD'`) su u `src/lib/datum.ts`. Konstanta `DANA_U_KALENDARU` (30) i tip odgovora su u `src/lib/kalendar.ts`.
+- 1.5: dodani su shadcn `combobox`, `input-group` i `textarea`. Prilagođeni su pravilima iz 0.7: visina 48 px, bijela pozadina i 16 px teksta. `button.tsx` i `input.tsx` **nisu** prepisani: shadcn je to nudio, a odgovoreno je „ne”.
+- 1.5: ekran koraka 3 je u `narudzba/korak-lokacija.tsx`, a kalendar u `narudzba/kalendar-odvoza.tsx`.
+  - Nakon odabira mjesta polje za pretragu nestaje i prikazuje se kartica mjesta s gumbom „Promijeni”.
+  - Za nepokriveno mjesto prikazuju se samo poruka i telefon, a Dalje je onemogućen.
+  - Dio dana i dani u kalendaru su gumbi s `aria-pressed`.
+  - Kalendar prima fokus greške preko `data-fokus-greske` (Dalje traži taj atribut i `aria-invalid`).
+- 1.5: GPS gumb na mobitelu radi samo preko https-a (Vercel), a ne na lokalnoj adresi `http://192.168…`.
+- 1.5: polja forme za korak 3 su `naselje` (objekt iz pretrage), `ulica`, `lat`, `lng`, `napomena`, `zeljeniDatum` i `dioDana`. `napomena` ide u stupac `napomena_kupca` (1.6).

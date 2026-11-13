@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, ArrowRight, LoaderCircle } from 'lucide-react'
-import { FormProvider, useForm, type FieldPath } from 'react-hook-form'
+import { FormProvider, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { toast } from 'sonner'
 import { KorakFotografije } from '@/components/javno/narudzba/korak-fotografije'
+import { KorakLokacija } from '@/components/javno/narudzba/korak-lokacija'
 import { KorakMaterijali } from '@/components/javno/narudzba/korak-materijali'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -27,7 +28,10 @@ import {
 const KORACI: { naslov: string; polja: FieldPath<NarudzbaForme>[] }[] = [
   { naslov: 'Materijali', polja: ['stavke'] },
   { naslov: 'Fotografije', polja: ['fotografije'] },
-  { naslov: 'Lokacija i termin', polja: [] },
+  {
+    naslov: 'Lokacija i termin',
+    polja: ['naselje', 'ulica', 'lat', 'lng', 'zeljeniDatum', 'dioDana', 'napomena'],
+  },
   { naslov: 'Kontakt', polja: [] },
 ]
 
@@ -61,8 +65,17 @@ export function Koraci({
       stavke: pocetniRetci(pocetneStavke, materijali),
       fotografije: [],
       narudzbaId: null,
+      naselje: null,
+      ulica: '',
+      lat: null,
+      lng: null,
+      napomena: '',
+      zeljeniDatum: null,
+      dioDana: 'svejedno',
     },
   })
+  // Kupac iz mjesta izvan našeg područja ne može dalje (vidi telefon u koraku 3).
+  const naselje = useWatch({ control: forma.control, name: 'naselje' })
   const [korak, setKorak] = useState(0)
   // Broj fotografija koje se upravo smanjuju (korak 2) i traje li slanje fotografija.
   const [smanjujem, setSmanjujem] = useState(0)
@@ -149,7 +162,10 @@ export function Koraci({
     if (!ispravno) {
       // Kupca odvedi do prvog polja s greškom (nakon što se greške prikažu).
       requestAnimationFrame(() => {
-        document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+        // data-fokus-greske imaju dijelovi koji nisu polja za unos (kalendar u koraku 3).
+        document
+          .querySelector<HTMLElement>('[aria-invalid="true"], [data-fokus-greske="true"]')
+          ?.focus()
       })
       return
     }
@@ -159,7 +175,7 @@ export function Koraci({
 
   const zadnji = korak === KORACI.length - 1
   // Dalje čeka dok se fotografije smanjuju ili šalju.
-  const zauzeto = saljem || (korak === 1 && smanjujem > 0)
+  const zauzeto = saljem || (korak === 1 && smanjujem > 0) || (korak === 2 && naselje?.pokrivena === false)
 
   return (
     <FormProvider {...forma}>
@@ -202,8 +218,9 @@ export function Koraci({
                 zakljucano={saljem}
               />
             )}
-            {korak > 1 && (
-              // Privremeno: ovi koraci se grade u 1.5 i 1.6.
+            {korak === 2 && <KorakLokacija />}
+            {korak > 2 && (
+              // Privremeno: ovaj korak se gradi u 1.6.
               <p className="text-muted-foreground">Ovaj korak uskoro dolazi.</p>
             )}
           </CardContent>

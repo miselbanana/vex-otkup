@@ -147,8 +147,10 @@ export type Database = {
       }
       narudzbe: {
         Row: {
+          bodovi: number
           broj: string
           created_at: string
+          datum_odvoza: string
           dio_dana: Database["public"]["Enums"]["dio_dana"]
           dogovoreni_termin: string | null
           fbclid: string | null
@@ -165,16 +167,20 @@ export type Database = {
           procjena_ukupno: number
           razlog_otkaza: Database["public"]["Enums"]["razlog_otkaza"] | null
           realizirana_at: string | null
+          redoslijed: number | null
           status: Database["public"]["Enums"]["status_narudzbe"]
           stvarno_ukupno: number | null
+          udaljenost_km: number
           ulica: string
           utm_campaign: string | null
           utm_source: string | null
           zeljeni_datum: string
         }
         Insert: {
+          bodovi: number
           broj: string
           created_at?: string
+          datum_odvoza: string
           dio_dana?: Database["public"]["Enums"]["dio_dana"]
           dogovoreni_termin?: string | null
           fbclid?: string | null
@@ -191,16 +197,20 @@ export type Database = {
           procjena_ukupno: number
           razlog_otkaza?: Database["public"]["Enums"]["razlog_otkaza"] | null
           realizirana_at?: string | null
+          redoslijed?: number | null
           status?: Database["public"]["Enums"]["status_narudzbe"]
           stvarno_ukupno?: number | null
+          udaljenost_km: number
           ulica: string
           utm_campaign?: string | null
           utm_source?: string | null
           zeljeni_datum: string
         }
         Update: {
+          bodovi?: number
           broj?: string
           created_at?: string
+          datum_odvoza?: string
           dio_dana?: Database["public"]["Enums"]["dio_dana"]
           dogovoreni_termin?: string | null
           fbclid?: string | null
@@ -217,8 +227,10 @@ export type Database = {
           procjena_ukupno?: number
           razlog_otkaza?: Database["public"]["Enums"]["razlog_otkaza"] | null
           realizirana_at?: string | null
+          redoslijed?: number | null
           status?: Database["public"]["Enums"]["status_narudzbe"]
           stvarno_ukupno?: number | null
+          udaljenost_km?: number
           ulica?: string
           utm_campaign?: string | null
           utm_source?: string | null
@@ -271,6 +283,47 @@ export type Database = {
             columns: ["zupanija_id"]
             isOneToOne: false
             referencedRelation: "zupanije"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      postavke_kalendara: {
+        Row: {
+          baza_naselje_id: number
+          bodovi_1: number
+          bodovi_2: number
+          bodovi_dalje: number
+          granica_1_km: number
+          granica_2_km: number
+          id: boolean
+          kapacitet_dana: number
+        }
+        Insert: {
+          baza_naselje_id: number
+          bodovi_1?: number
+          bodovi_2?: number
+          bodovi_dalje?: number
+          granica_1_km?: number
+          granica_2_km?: number
+          id?: boolean
+          kapacitet_dana?: number
+        }
+        Update: {
+          baza_naselje_id?: number
+          bodovi_1?: number
+          bodovi_2?: number
+          bodovi_dalje?: number
+          granica_1_km?: number
+          granica_2_km?: number
+          id?: boolean
+          kapacitet_dana?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postavke_kalendara_baza_naselje_id_fkey"
+            columns: ["baza_naselje_id"]
+            isOneToOne: false
+            referencedRelation: "naselja"
             referencedColumns: ["id"]
           },
         ]
@@ -333,6 +386,21 @@ export type Database = {
           },
         ]
       }
+      zatvoreni_dani: {
+        Row: {
+          datum: string
+          razlog: string | null
+        }
+        Insert: {
+          datum: string
+          razlog?: string | null
+        }
+        Update: {
+          datum?: string
+          razlog?: string | null
+        }
+        Relationships: []
+      }
       zupanije: {
         Row: {
           id: number
@@ -356,7 +424,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      bez_kvacica: { Args: { tekst: string }; Returns: string }
+      bodovi_narudzbe: {
+        Args: { p_naselje_id: number }
+        Returns: {
+          bodovi: number
+          udaljenost_km: number
+        }[]
+      }
+      slobodni_dani: {
+        Args: { p_do: string; p_naselje_id: number; p_od: string }
+        Returns: string[]
+      }
+      trazi_naselja: {
+        Args: { upit: string }
+        Returns: {
+          id: number
+          naziv: string
+          opcina: string
+          pokrivena: boolean
+          zupanija: string
+        }[]
+      }
     }
     Enums: {
       dio_dana: "jutro" | "popodne" | "svejedno"
