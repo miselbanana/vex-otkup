@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { MapPin, Phone } from 'lucide-react'
+import { GumbPostavkiKolacica } from '@/components/javno/gumb-postavki-kolacica'
 import { Logo } from '@/components/logo'
 import { NAZIV, OPIS, PODRUCJE, TELEFON_LINK, TELEFON_PRIKAZ } from '@/lib/kontakt'
 
@@ -41,13 +42,7 @@ export function Podnozje() {
           >
             Politika privatnosti
           </Link>
-          {/* Otvaranje postavki kolačića spajamo s vanilla-cookieconsentom u koraku 1.13. */}
-          <button
-            type="button"
-            className="inline-flex min-h-12 items-center underline-offset-4 hover:text-primary hover:underline"
-          >
-            Postavke kolačića
-          </button>
+          <GumbPostavkiKolacica />
         </nav>
       </div>
 

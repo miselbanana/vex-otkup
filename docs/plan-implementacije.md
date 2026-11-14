@@ -402,6 +402,25 @@ U podnožje dodaj link "Postavke kolačića".
 Rezultat: Banner se pojavljuje pri prvom posjetu, a politika je dostupna iz podnožja i iz forme.
 Napomena: Gumb "Odbij" mora biti jednako vidljiv kao "Prihvati".
 Tekst politike neka pregleda netko tko se bavi GDPR-om. Provjeri treba li vam ugovor o obradi podataka, jer ti kao izrađivač imaš pristup podacima.
+1.13a Jezično usklađivanje teksta
+Opis: Sav tekst koji vide kupci, Vedran i Mišel piše se pravilnim standardnim hrvatskim jezikom, svugdje na isti način. Korak je dodan naknadno (nakon 1.13), na Mišelov zahtjev.
+Zadaci:
+U `CLAUDE.md` (Pravila koda → Jezik i imenovanje) upiši pravila pisanja teksta za korisnike:
+navodnici „…“ (donji i gornji), a ne „…” ni "…"
+bez razgovornih riječi i anglizama gdje postoji uobičajena hrvatska riječ: sajt → stranica, link → poveznica, email → e-pošta, kliknuti ostaje
+ista riječ za istu stvar na cijelom sajtu (npr. uvijek „odvoz”, „otkup”, „narudžba”, „mobitel”)
+datumi u obliku `13. 11. 2026.`, decimalni zarez, razmak prije `€` i `kg`
+obraćanje kupcu s „vi” (malim slovom), a u adminu kratko i izravno
+Prođi kroz sav tekst koji korisnik vidi, dio po dio:
+javni sajt: početna, cjenik, kalkulator, narudžba (sva 4 koraka, sažetak, zahvala), zaglavlje, podnožje, banner kolačića, politika privatnosti
+poruke grešaka: Zod sheme (`src/lib/validacija/`), odgovori API ruta, poruke u formama
+admin: popis, kartice, detalji, dijalozi, realizacija, cjenik, postavke, donja navigacija, prijava, prazna stanja
+metapodaci: naslovi i opisi stranica (`metadata`), slika za dijeljenje (`opengraph-image.tsx`), `admin.webmanifest`
+Mijenja se samo tekst. Nazivi u kodu, bazi i rutama ostaju bez dijakritika (pravilo iz CLAUDE.md), a logika se ne dira.
+Rezultat: U tekstu za korisnike nema razgovornih riječi ni miješanih navodnika, a pravila su upisana u CLAUDE.md, pa ih slijede i koraci 1.7, 1.14 i dalje.
+Napomena: Komentari u kodu i dokumentacija (CLAUDE.md, plan) nisu dio ovog koraka.
+Prije svake promjene teksta koji je Mišel sam tražio (npr. legenda kalendara) pitaj ga.
+Opisi klasa u cjeniku dolaze iz baze. Ispravljaju se kroz admin cjenik (1.11), a ne kroz kod.
 1.14 Meta Pixel i Conversions API
 Opis: Meta mora znati koji oglas donosi narudžbe. Inače optimizira prema klikovima umjesto prema narudžbama.
 Zadaci:
@@ -649,6 +668,7 @@ Korak	Ovisi o
 1.11	0.6, 1.1
 1.12	0.6, 0.8
 1.13	0.7
+1.13a	1.13
 1.14	1.6, 1.13
 1.15	svi koraci Faze 1
 2.1	1.10
@@ -661,5 +681,5 @@ Kritični put (svaki zastoj ovdje pomiče kraj projekta):
 0.3 → 0.4 → 0.5 → 1.1 → 1.3 → 1.4 / 1.5 → 1.6 → 1.8 → 1.9 → 1.10 → 1.15
 Što se može raditi paralelno:
 0.6 i 0.7 bilo kojim redom.
-1.11, 1.12 i 1.13 dok čekaš DNS potvrdu za email (1.7).
+1.11, 1.12, 1.13 i 1.13a dok čekaš DNS potvrdu za email (1.7).
 Podatke za 0.5 (cijene, opisi klasa) i 1.13 (podaci o obrtu) traži od Vedrana već prvi dan, jer o njima ovisi tempo.

@@ -227,7 +227,8 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
 - [x] 1.10 Admin — realizacija narudžbe
 - [x] 1.11 Admin — uređivanje cjenika
 - [x] 1.12 Instalacija admina na mobitel
-- [ ] 1.13 Politika privatnosti i kolačići
+- [x] 1.13 Politika privatnosti i kolačići
+- [ ] 1.13a Jezično usklađivanje teksta (dodano na Mišelov zahtjev)
 - [ ] 1.14 Meta Pixel i Conversions API
 - [ ] 1.15 Testiranje i puštanje uživo
 
@@ -441,4 +442,16 @@ Ažuriraj nakon svakog završenog koraka: `[x]` = gotovo, `[~]` = u tijeku. Zapi
   - `proxy.ts` ne dira `/admin.webmanifest` ni ikone (matcher `/admin/:path*` ih ne hvata), pa se manifest učita i bez prijave (provjereno: 200, `application/manifest+json`).
   - `/prijava` je izvan `scope`. Ako se prijava izgubi, otvori se unutar aplikacije s trakom adrese, a nakon prijave aplikacija se vraća na normalan prikaz.
   - Service worker se ne radi do 2.5 (Chrome ga za instalaciju više ne traži).
-  - **Instalacija na Vedranovom mobitelu još nije napravljena** (ručni korak nakon objave na Vercelu).
+  - Instalacija iz Chromea provjerena na mobitelu 13. 11. 2026.: ikona, otvaranje bez adresne trake, zapamćena prijava. Na Vedranovom mobitelu ponoviti kad dobije korisnika (vidi 0.6).
+- 1.13: rađeno **s privremenim podacima obrta** (Mišelova odluka, Vedranove podatke još nemamo). U `src/lib/kontakt.ts` su `OBRT_NAZIV`, `OBRT_OIB` (`00000000000`), `OBRT_ADRESA`, `EMAIL_PRIVATNOST` (`privatnost@example.com`) i `POLITIKA_VRIJEDI_OD` (tekst, ne `new Date()`). **Zamijeniti prije 1.15**, zajedno s telefonom.
+- 1.13: politika je `src/app/(javno)/politika-privatnosti/page.tsx`, statična stranica (○) s 8 poglavlja: voditelj obrade, podaci, svrha i pravna osnova, rok (24 mj. + anonimizacija), primatelji (Supabase, Vercel, Resend, Cloudflare, Meta uz pristanak, održavatelj), prava + AZOP, kolačići, izmjene. Popis kolačića je u karticama, a ne u tablici (uski mobitel). **Kad se doda nov pružatelj (npr. Sentry u 2.7), dopisati ga u poglavlje 5 i promijeniti `POLITIKA_VRIJEDI_OD`.**
+- 1.13: instaliran je `vanilla-cookieconsent` 3.3. Banner je `src/components/javno/pristanak-kolacica.tsx` (`CookieConsent.run` u `useEffect`; paket sam sprječava dvostruko pokretanje, `window._ccRun`), samo u javnom layoutu. Admin i `/prijava` ga nemaju (provjereno: CSS paketa se tamo ne učitava).
+  - Kategorije su `necessary` (zaključana) i `marketing` (`autoClear` briše `_fbp` i `_fbc` kad se pristanak povuče). **U 1.14 se Pixel spaja na kategoriju `marketing`.**
+  - Prozor je `box`, dolje u sredini, s `equalWeightButtons` („Prihvati sve” i „Odbij” izgledaju jednako). Izbor se pamti u kolačiću `cc_cookie` (182 dana).
+  - Izgled je u `globals.css` (`html #cc-main { --cc-… }`): boje projekta, gumbi 48 px i 16 px teksta, Inter i Barlow. `html` ispred `#cc-main` je potreban da pravila pobijede CSS paketa bez obzira na redoslijed učitavanja.
+  - „Postavke kolačića” (podnožje i poglavlje 7 politike) je klijentska komponenta `gumb-postavki-kolacica.tsx` (`showPreferences()`).
+- 1.13: tekst politike i bannera jezično je ispravljen na Mišelov zahtjev (standardni hrvatski, navodnici „…“). Ostatak sajta usklađuje se u novom koraku **1.13a**, koji je dodan u plan.
+- 1.13 **otvorena pitanja** (ne rješavaju se kodom):
+  - tekst politike neka pregleda netko tko se bavi GDPR-om
+  - treba li ugovor o obradi podataka između Vedrana i Mišela
+  - `SpremiIzvor` sprema `fbclid` i UTM u sessionStorage i prije pristanka (u politici su navedeni kao nužni). **Odlučiti najkasnije u 1.14** smije li `fbclid` ostati bez pristanka.
